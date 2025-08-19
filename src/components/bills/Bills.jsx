@@ -20,26 +20,7 @@ const Bills = () => {
       setBills(response.data.bills || []);
     } catch (error) {
       console.error('Failed to load bills:', error);
-      // Mock data for development
-      const mockBills = [
-        {
-          id: 1,
-          month: '2024-11-01',
-          amount: 2500,
-          status: 'pending',
-          generated_at: '2024-11-01T00:00:00Z',
-          paid_at: null
-        },
-        {
-          id: 2,
-          month: '2024-10-01',
-          amount: 2300,
-          status: 'paid',
-          generated_at: '2024-10-01T00:00:00Z',
-          paid_at: '2024-10-15T10:30:00Z'
-        }
-      ];
-      setBills(mockBills);
+      setBills([]);
     } finally {
       setLoading(false);
     }

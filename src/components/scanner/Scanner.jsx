@@ -32,7 +32,8 @@ const Scanner = () => {
       setResult({
         success: true,
         student: response.data.student,
-        message: 'Attendance marked successfully!'
+        attendance: response.data.attendance,
+        message: response.data.message || 'Attendance marked successfully!'
       });
 
       // Haptic feedback if available

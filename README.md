@@ -23,20 +23,23 @@ A modern Telegram Mini App for managing mess services, built with React and Vite
 ## 📦 Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd telegram-mini-app
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure API endpoint**
    Edit `src/services/apiService.js` and update the `API_BASE_URL`:
+
    ```javascript
-   const API_BASE_URL = 'https://your-backend-url.com/api';
+   const API_BASE_URL = "https://your-backend-url.com/api";
    ```
 
 4. **Start development server**
@@ -49,11 +52,13 @@ A modern Telegram Mini App for managing mess services, built with React and Vite
 ### Deploy to Vercel
 
 1. **Install Vercel CLI**
+
    ```bash
    npm i -g vercel
    ```
 
 2. **Build the project**
+
    ```bash
    npm run build
    ```
@@ -66,6 +71,7 @@ A modern Telegram Mini App for managing mess services, built with React and Vite
 ### Configure Telegram Bot
 
 1. **Register Mini App with @BotFather**
+
    - Send `/newapp` to @BotFather
    - Follow the prompts to create your Mini App
    - Set the Web App URL to your Vercel deployment URL
@@ -91,13 +97,14 @@ The app expects the following API endpoints:
 
 - `POST /auth/telegram-login/` - Telegram authentication
 - `GET /auth/profile/` - Get user profile
-- `GET /bills/current/` - Get current bill
-- `GET /bills/` - Get all bills
-- `POST /bills/{id}/payment/` - Submit payment
-- `POST /attendance/mark/` - Mark attendance
-- `GET /attendance/my/` - Get user attendance
-- `POST /mess-cuts/` - Apply for mess cut
-- `GET /mess-cuts/my/` - Get user mess cuts
+- `GET /mess/bills/current/` - Get current bill
+- `GET /mess/bills/all/` - Get all bills
+- `POST /mess/bills/{id}/payment/` - Submit payment
+- `POST /mess/attendance/mark/` - Mark attendance
+- `GET /mess/attendance/my/` - Get user attendance
+- `POST /mess/mess-cuts/` - Apply for mess cut
+- `GET /mess/mess-cuts/my/` - Get user mess cuts
+- `GET /mess/scanner/stats/` - Get scanner statistics
 
 ## 📱 Usage
 
@@ -160,11 +167,13 @@ All components are modular and can be easily customized:
 ### Common Issues
 
 1. **Camera not working in QR Scanner**
+
    - Ensure HTTPS is enabled
    - Check browser permissions
    - Test on actual device (not desktop browser)
 
 2. **Telegram WebApp not loading**
+
    - Verify the URL is correctly set in @BotFather
    - Check CORS configuration
    - Ensure SSL certificate is valid

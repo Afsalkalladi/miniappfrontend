@@ -35,25 +35,25 @@ export const apiService = {
     loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
     getProfile: () => api.get('/auth/profile/'),
   },
-  
+
   bills: {
-    getCurrentBill: () => api.get('/bills/current/'),
-    getAllBills: () => api.get('/bills/'),
-    submitPayment: (billId, data) => api.post(`/bills/${billId}/payment/`, data),
+    getCurrentBill: () => api.get('/mess/bills/current/'),
+    getAllBills: () => api.get('/mess/bills/all/'),
+    submitPayment: (billId, data) => api.post(`/mess/bills/${billId}/payment/`, data),
   },
-  
+
   attendance: {
-    markAttendance: (data) => api.post('/attendance/mark/', data),
-    getMyAttendance: () => api.get('/attendance/my/'),
+    markAttendance: (data) => api.post('/mess/attendance/mark/', data),
+    getMyAttendance: () => api.get('/mess/attendance/my/'),
   },
-  
+
   messCuts: {
-    apply: (data) => api.post('/mess-cuts/', data),
-    getMyCuts: () => api.get('/mess-cuts/my/'),
+    apply: (data) => api.post('/mess/mess-cuts/', data),
+    getMyCuts: () => api.get('/mess/mess-cuts/my/'),
   },
-  
+
   scanner: {
-    scanQR: (data) => api.post('/attendance/mark/', data),
-    getStats: () => api.get('/scanner/stats/'),
+    scanQR: (data) => api.post('/mess/attendance/mark/', data),
+    getStats: () => api.get('/mess/scanner/stats/'),
   },
 };

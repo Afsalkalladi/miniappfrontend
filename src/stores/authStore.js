@@ -9,7 +9,7 @@ export const useAuthStore = create((set, get) => ({
   initializeUser: async (telegramUser) => {
     try {
       set({ isLoading: true, error: null });
-      
+
       // Register/login user with backend
       const response = await apiService.auth.loginWithTelegram({
         telegram_id: telegramUser.id.toString(),
@@ -23,15 +23,15 @@ export const useAuthStore = create((set, get) => ({
         localStorage.setItem('auth_token', response.data.token);
       }
 
-      set({ 
-        user: response.data.user, 
-        isLoading: false 
+      set({
+        user: response.data.user,
+        isLoading: false
       });
     } catch (error) {
       console.error('Auth error:', error);
-      set({ 
-        error: error.response?.data?.error || error.message, 
-        isLoading: false 
+      set({
+        error: error.response?.data?.error || error.message,
+        isLoading: false
       });
     }
   },

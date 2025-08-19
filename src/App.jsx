@@ -7,6 +7,8 @@ import Scanner from './components/scanner/Scanner';
 import Profile from './components/profile/Profile';
 import Login from './components/auth/Login';
 import Navigation from './components/common/Navigation';
+import MessCuts from './components/messCuts/MessCuts';
+import Attendance from './components/attendance/Attendance';
 
 function App() {
   const { user, initializeUser, isLoading } = useAuthStore();
@@ -68,6 +70,8 @@ function App() {
           <Route path="/bills" element={<Bills />} />
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/mess-cuts" element={<MessCuts />} />
+          <Route path="/attendance" element={<Attendance />} />
         </Routes>
         <Navigation />
       </div>

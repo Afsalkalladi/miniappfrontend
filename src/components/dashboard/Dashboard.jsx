@@ -16,12 +16,12 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const [billResponse] = await Promise.all([
-        apiService.bills.getCurrentBill().catch(() => ({ data: null })),
-      ]);
+      const billResponse = await apiService.bills.getCurrentBill().catch(() => ({ data: null }));
       setCurrentBill(billResponse.data);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
+      // Set current bill to null if there's an error
+      setCurrentBill(null);
     } finally {
       setLoading(false);
     }
