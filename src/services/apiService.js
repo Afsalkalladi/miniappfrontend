@@ -34,6 +34,7 @@ export const apiService = {
   auth: {
     loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
     getProfile: () => api.get('/auth/profile/'),
+    updateProfile: (data) => api.patch('/auth/profile/', data),
   },
 
   bills: {
@@ -55,5 +56,11 @@ export const apiService = {
   scanner: {
     scanQR: (data) => api.post('/mess/attendance/mark/', data),
     getStats: () => api.get('/mess/scanner/stats/'),
+  },
+
+  admin: {
+    getDashboardStats: () => api.get('/mess/admin/dashboard/'),
+    getPendingStudents: () => api.get('/students/pending/'),
+    approveStudent: (studentId, data) => api.post(`/students/${studentId}/approve/`, data),
   },
 };

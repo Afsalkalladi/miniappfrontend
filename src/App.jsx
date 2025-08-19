@@ -6,12 +6,14 @@ import Bills from './components/bills/Bills';
 import Scanner from './components/scanner/Scanner';
 import Profile from './components/profile/Profile';
 import Login from './components/auth/Login';
+import Register from './components/auth/Register';
 import Navigation from './components/common/Navigation';
 import MessCuts from './components/messCuts/MessCuts';
 import Attendance from './components/attendance/Attendance';
+import AdminPanel from './components/admin/AdminPanel';
 
 function App() {
-  const { user, initializeUser, isLoading } = useAuthStore();
+  const { user, initializeUser, isLoading, needsRegistration, telegramUser, completeRegistration } = useAuthStore();
 
   useEffect(() => {
     // Initialize Telegram WebApp
@@ -58,6 +60,15 @@ function App() {
     );
   }
 
+  if (needsRegistration && telegramUser) {
+    return (
+      <Register
+        telegramUser={telegramUser}
+        onSuccess={completeRegistration}
+      />
+    );
+  }
+
   if (!user) {
     return <Login />;
   }
@@ -72,6 +83,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/mess-cuts" element={<MessCuts />} />
           <Route path="/attendance" element={<Attendance />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Routes>
         <Navigation />
       </div>
