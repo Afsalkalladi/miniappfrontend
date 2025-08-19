@@ -46,6 +46,15 @@ const Dashboard = () => {
         <p className="text-telegram-hint mt-1">
           Mess No: {user?.student?.mess_no || 'Not assigned'}
         </p>
+        {user?.student?.is_approved ? (
+          <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
+            ✓ Approved
+          </span>
+        ) : (
+          <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
+            ⏳ Pending Approval
+          </span>
+        )}
       </div>
 
       {/* Current Bill */}

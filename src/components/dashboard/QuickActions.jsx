@@ -12,24 +12,16 @@ const QuickActions = () => {
 
   const actions = [
     {
-      id: 'scan',
-      title: 'QR Scanner',
-      description: 'Mark attendance',
-      icon: QrCodeIcon,
-      color: 'bg-blue-500',
-      onClick: () => navigate('/scanner'),
-    },
-    {
       id: 'bills',
       title: 'My Bills',
-      description: 'View & pay bills',
+      description: 'View & pay my bills',
       icon: CurrencyRupeeIcon,
       color: 'bg-green-500',
       onClick: () => navigate('/bills'),
     },
     {
       id: 'mess-cut',
-      title: 'Mess Cut',
+      title: 'Apply Mess Cut',
       description: 'Apply for leave',
       icon: CalendarDaysIcon,
       color: 'bg-orange-500',
@@ -37,11 +29,19 @@ const QuickActions = () => {
     },
     {
       id: 'attendance',
-      title: 'Attendance',
-      description: 'View history',
+      title: 'My Attendance',
+      description: 'View my history',
       icon: ChartBarIcon,
       color: 'bg-purple-500',
       onClick: () => navigate('/attendance'),
+    },
+    {
+      id: 'qr-code',
+      title: 'My QR Code',
+      description: 'View/regenerate QR',
+      icon: QrCodeIcon,
+      color: 'bg-blue-500',
+      onClick: () => navigate('/qr-code'),
     },
   ];
 

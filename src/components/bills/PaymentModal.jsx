@@ -1,16 +1,35 @@
 import React, { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CopyIcon } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
+import { useAuthStore } from '../../stores/authStore';
 
 const PaymentModal = ({ bill, onClose, onSuccess }) => {
+  const { user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [transactionNumber, setTransactionNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Prefilled payment details
+  const messNo = user?.student?.mess_no || '';
+  const amount = bill?.amount || 0;
+
+  const copyToClipboard = (text, type) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(type);
+      setTimeout(() => setCopied(false), 2000);
+
+      // Haptic feedback
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!transactionNumber.trim()) {
       setError('Transaction number is required');
       return;
@@ -29,11 +48,11 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
-      
+
       onSuccess();
     } catch (error) {
       setError(error.response?.data?.error || 'Failed to submit payment');
-      
+
       // Haptic feedback if available
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
@@ -57,10 +76,42 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div>
-            <label className="block text-telegram-text mb-2">Bill Amount</label>
-            <div className="text-2xl font-bold text-telegram-accent">
-              ₹{bill.amount}
+          {/* Prefilled Payment Details */}
+          <div className="bg-telegram-bg p-4 rounded-lg space-y-3">
+            <h4 className="text-telegram-text font-medium">Payment Details</h4>
+
+            <div className="flex items-center justify-between">
+              <span className="text-telegram-hint">Amount:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-telegram-accent">₹{amount}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(amount.toString(), 'amount')}
+                  className="p-1 text-telegram-hint hover:text-telegram-text"
+                >
+                  <CopyIcon className="w-4 h-4" />
+                </button>
+                {copied === 'amount' && <span className="text-green-400 text-xs">Copied!</span>}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-telegram-hint">Note/Reference:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-telegram-text font-mono">{messNo}</span>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(messNo, 'messno')}
+                  className="p-1 text-telegram-hint hover:text-telegram-text"
+                >
+                  <CopyIcon className="w-4 h-4" />
+                </button>
+                {copied === 'messno' && <span className="text-green-400 text-xs">Copied!</span>}
+              </div>
+            </div>
+
+            <div className="text-xs text-telegram-hint">
+              💡 Use your mess number as payment reference/note
             </div>
           </div>
 

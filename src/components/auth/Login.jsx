@@ -29,12 +29,27 @@ const Login = () => {
         )}
 
         <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-700">
-          <p className="text-telegram-text mb-4">
-            Please open this app through Telegram to continue.
-          </p>
-          <p className="text-telegram-hint text-sm">
-            This app requires Telegram authentication to function properly.
-          </p>
+          <h2 className="text-telegram-text text-lg font-semibold mb-4">
+            Telegram Access Required
+          </h2>
+          <div className="space-y-3 text-sm">
+            <p className="text-telegram-text">
+              This app can only be accessed through Telegram Mini App.
+            </p>
+            <div className="bg-telegram-bg p-3 rounded">
+              <p className="text-telegram-hint mb-2">How to access:</p>
+              <ol className="text-telegram-hint space-y-1 text-xs">
+                <li>1. Open Telegram app</li>
+                <li>2. Search for our bot: <span className="text-telegram-accent">@testsaharamessbot</span></li>
+                <li>3. Click "Start" or send /start</li>
+                <li>4. Click the "Mini App" button</li>
+                <li>5. Use the app within Telegram</li>
+              </ol>
+            </div>
+            <p className="text-red-400 text-xs">
+              ⚠️ Browser access is not supported for security reasons
+            </p>
+          </div>
         </div>
       </div>
     </div>

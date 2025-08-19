@@ -12,47 +12,42 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ isLoading: true, error: null, telegramUser });
 
-      // Try to login with existing user
-      const response = await apiService.auth.loginWithTelegram({
-        telegram_id: telegramUser.id.toString(),
-        username: telegramUser.username,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-      });
+      // Check if user exists by Telegram ID
+      const response = await apiService.auth.checkTelegramUser(telegramUser.id.toString());
 
-      // Store auth token
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
-      }
-
-      // Check if user needs to complete registration
-      if (response.data.user && !response.data.user.student) {
-        set({
-          needsRegistration: true,
-          isLoading: false
+      if (response.data.exists) {
+        // User exists, proceed with login
+        const loginResponse = await apiService.auth.loginWithTelegram({
+          telegram_id: telegramUser.id.toString(),
+          username: telegramUser.username,
+          first_name: telegramUser.first_name,
+          last_name: telegramUser.last_name,
         });
-      } else {
+
+        // Store auth token
+        if (loginResponse.data.token) {
+          localStorage.setItem('auth_token', loginResponse.data.token);
+        }
+
         set({
-          user: response.data.user,
+          user: loginResponse.data.user,
           isLoading: false,
           needsRegistration: false
         });
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      // If user doesn't exist, show registration
-      if (error.response?.status === 404 || error.response?.data?.error?.includes('not found')) {
+      } else {
+        // New user, show registration form
         set({
           needsRegistration: true,
           isLoading: false,
           error: null
         });
-      } else {
-        set({
-          error: error.response?.data?.error || error.message,
-          isLoading: false
-        });
       }
+    } catch (error) {
+      console.error('Auth error:', error);
+      set({
+        error: error.response?.data?.error || 'Authentication failed',
+        isLoading: false
+      });
     }
   },
 

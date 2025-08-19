@@ -42,7 +42,7 @@ const Register = ({ telegramUser, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.department || !formData.mobile_number) {
       setError('Please fill in all required fields');
       return;
@@ -52,34 +52,26 @@ const Register = ({ telegramUser, onSuccess }) => {
       setLoading(true);
       setError('');
 
-      // First register the user
-      const authResponse = await apiService.auth.loginWithTelegram({
+      // Register new student
+      const response = await apiService.auth.registerStudent({
         telegram_id: telegramUser.id.toString(),
         username: telegramUser.username,
         first_name: telegramUser.first_name,
         last_name: telegramUser.last_name,
-      });
-
-      // Then update student profile
-      await apiService.auth.updateProfile({
         ...formData,
         mobile_number: formData.mobile_number.replace(/\D/g, ''), // Remove non-digits
       });
-
-      // Store auth token
-      if (authResponse.data.token) {
-        localStorage.setItem('auth_token', authResponse.data.token);
-      }
 
       // Haptic feedback if available
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
 
-      onSuccess(authResponse.data.user);
+      // Show success message and redirect to pending approval
+      onSuccess(response.data);
     } catch (error) {
       setError(error.response?.data?.error || 'Registration failed. Please try again.');
-      
+
       // Haptic feedback if available
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');

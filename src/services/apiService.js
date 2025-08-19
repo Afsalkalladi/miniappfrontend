@@ -32,7 +32,9 @@ api.interceptors.response.use(
 
 export const apiService = {
   auth: {
+    checkTelegramUser: (telegramId) => api.get(`/auth/check-telegram/${telegramId}/`),
     loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
+    registerStudent: (data) => api.post('/auth/register-student/', data),
     getProfile: () => api.get('/auth/profile/'),
     updateProfile: (data) => api.patch('/auth/profile/', data),
   },
@@ -62,5 +64,17 @@ export const apiService = {
     getDashboardStats: () => api.get('/mess/admin/dashboard/'),
     getPendingStudents: () => api.get('/students/pending/'),
     approveStudent: (studentId, data) => api.post(`/students/${studentId}/approve/`, data),
+  },
+
+  superuser: {
+    getAllUsers: () => api.get('/auth/users/'),
+    getSystemStats: () => api.get('/auth/system-stats/'),
+    assignRole: (userId, data) => api.post(`/auth/users/${userId}/assign-role/`, data),
+  },
+
+  student: {
+    regenerateQR: () => api.post('/students/regenerate-qr/'),
+    getNotifications: () => api.get('/notifications/my/'),
+    markNotificationRead: (notificationId) => api.post(`/notifications/${notificationId}/read/`),
   },
 };
