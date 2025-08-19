@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://your-app.onrender.com/api';
+const API_BASE_URL = 'https://miniapp-backend-0s1t.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
