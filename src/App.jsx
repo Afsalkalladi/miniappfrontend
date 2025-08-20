@@ -96,7 +96,7 @@ function App() {
       console.log('✅ Auth response:', response.data);
 
       // Handle both admin/staff and student users
-      if (response.data.needs_registration || response.data.user?.role === 'student') {
+      if (response.data.needs_registration || response.data.user?.has_student_features) {
         // Student flow - let StudentApp handle the complete flow
         console.log('👨‍🎓 Student user detected, delegating to StudentApp');
         setAppState(prev => ({
