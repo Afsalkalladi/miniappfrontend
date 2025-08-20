@@ -12,34 +12,32 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ isLoading: true, error: null, telegramUser });
 
-      // Check if user exists by Telegram ID
-      const response = await apiService.auth.checkTelegramUser(telegramUser.id.toString());
+      // Try to login with Telegram data
+      const response = await apiService.auth.loginWithTelegram({
+        telegram_id: telegramUser.id.toString(),
+        username: telegramUser.username,
+        first_name: telegramUser.first_name,
+        last_name: telegramUser.last_name,
+      });
 
-      if (response.data.exists) {
-        // User exists, proceed with login
-        const loginResponse = await apiService.auth.loginWithTelegram({
-          telegram_id: telegramUser.id.toString(),
-          username: telegramUser.username,
-          first_name: telegramUser.first_name,
-          last_name: telegramUser.last_name,
-        });
-
-        // Store auth token
-        if (loginResponse.data.token) {
-          localStorage.setItem('auth_token', loginResponse.data.token);
-        }
-
-        set({
-          user: loginResponse.data.user,
-          isLoading: false,
-          needsRegistration: false
-        });
-      } else {
-        // New user, show registration form
+      if (response.data.needs_registration) {
+        // New student user - show registration form
         set({
           needsRegistration: true,
           isLoading: false,
           error: null
+        });
+      } else {
+        // User exists (student/admin/staff) - proceed with login
+        // Store auth token
+        if (response.data.token) {
+          localStorage.setItem('auth_token', response.data.token);
+        }
+
+        set({
+          user: response.data.user,
+          isLoading: false,
+          needsRegistration: false
         });
       }
     } catch (error) {

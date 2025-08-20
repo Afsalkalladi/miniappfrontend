@@ -14,12 +14,11 @@ import MessCuts from './components/messCuts/MessCuts';
 import Attendance from './components/attendance/Attendance';
 import AdminPanel from './components/admin/AdminPanel';
 import StaffPanel from './components/staff/StaffPanel';
-import SuperuserPanel from './components/superuser/SuperuserPanel';
 import QRCodeManager from './components/student/QRCodeManager';
 import Notifications from './components/student/Notifications';
 
 function App() {
-  const { user, initializeUser, isLoading, needsRegistration, telegramUser, completeRegistration } = useAuthStore();
+  const { user, initializeUser, isLoading, needsRegistration, telegramUser } = useAuthStore();
   const [registrationData, setRegistrationData] = React.useState(null);
   const [showPendingApproval, setShowPendingApproval] = React.useState(false);
 
@@ -102,33 +101,31 @@ function App() {
     return <PendingApproval registrationData={user.student} />;
   }
 
-  // Role-based routing
+  // User type based routing
   const renderAppContent = () => {
-    switch (user.role) {
-      case 'superuser':
-        return <SuperuserPanel />;
-      case 'admin':
-        return <AdminPanel />;
-      case 'staff':
-        return <StaffPanel />;
-      case 'student':
-      default:
-        return (
-          <Router>
-            <div className="min-h-screen bg-telegram-bg text-telegram-text">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/bills" element={<Bills />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/mess-cuts" element={<MessCuts />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/qr-code" element={<QRCodeManager />} />
-                <Route path="/notifications" element={<Notifications />} />
-              </Routes>
-              <Navigation />
-            </div>
-          </Router>
-        );
+    // Check user type and render appropriate interface
+    if (user.is_admin) {
+      return <AdminPanel />;
+    } else if (user.is_staff) {
+      return <StaffPanel />;
+    } else {
+      // Student interface
+      return (
+        <Router>
+          <div className="min-h-screen bg-telegram-bg text-telegram-text">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/bills" element={<Bills />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/mess-cuts" element={<MessCuts />} />
+              <Route path="/attendance" element={<Attendance />} />
+              <Route path="/qr-code" element={<QRCodeManager />} />
+              <Route path="/notifications" element={<Notifications />} />
+            </Routes>
+            <Navigation />
+          </div>
+        </Router>
+      );
     }
   };
 

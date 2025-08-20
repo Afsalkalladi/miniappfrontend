@@ -83,7 +83,7 @@ const AdminPanel = () => {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-telegram-text font-medium">{user?.first_name} {user?.last_name}</p>
-            <p className="text-blue-400 text-sm">Admin</p>
+            <p className="text-blue-400 text-sm">Admin Panel</p>
           </div>
           <button
             onClick={logout}

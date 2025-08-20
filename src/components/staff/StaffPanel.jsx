@@ -84,7 +84,7 @@ const StaffPanel = () => {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-telegram-text font-medium">{user?.first_name} {user?.last_name}</p>
-            <p className="text-telegram-hint text-sm">Staff</p>
+            <p className="text-green-400 text-sm">Staff Scanner</p>
           </div>
           <button
             onClick={logout}

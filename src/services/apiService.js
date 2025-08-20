@@ -32,7 +32,6 @@ api.interceptors.response.use(
 
 export const apiService = {
   auth: {
-    checkTelegramUser: (telegramId) => api.get(`/auth/check-telegram/${telegramId}/`),
     loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
     registerStudent: (data) => api.post('/auth/register-student/', data),
     getProfile: () => api.get('/auth/profile/'),
@@ -66,11 +65,7 @@ export const apiService = {
     approveStudent: (studentId, data) => api.post(`/students/${studentId}/approve/`, data),
   },
 
-  superuser: {
-    getAllUsers: () => api.get('/auth/users/'),
-    getSystemStats: () => api.get('/auth/system-stats/'),
-    assignRole: (userId, data) => api.post(`/auth/users/${userId}/assign-role/`, data),
-  },
+  // Superuser endpoints removed - using Django admin for whitelist management
 
   student: {
     regenerateQR: () => api.post('/students/regenerate-qr/'),
