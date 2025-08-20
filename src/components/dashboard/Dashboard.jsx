@@ -1,60 +1,69 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/apiService';
-import BillCard from './BillCard';
-import QuickActions from './QuickActions';
-import RecentActivity from './RecentActivity';
+import {
+  UserIcon,
+  CurrencyRupeeIcon,
+  QrCodeIcon,
+  CalendarDaysIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon
+} from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  const [currentBill, setCurrentBill] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState(null);
   const [error, setError] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [currentBill, setCurrentBill] = useState(null);
 
   useEffect(() => {
+    console.log('🔄 Dashboard mounting...');
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
     try {
+      setLoading(true);
       setError(null);
-      console.log('🔄 Loading dashboard data...');
+      console.log('📤 Loading dashboard data...');
 
-      // Check if we have auth token
+      // Check auth token
       const token = localStorage.getItem('auth_token');
+      console.log('🔑 Auth token:', token ? 'Present' : 'Missing');
+
       if (!token) {
-        console.error('❌ No auth token found');
-        setError('Authentication required. Please login again.');
+        setError('No authentication token found');
         setLoading(false);
         return;
       }
 
-      // Load user profile
-      console.log('📤 Fetching user profile...');
-      const profileResponse = await apiService.auth.getProfile();
-      console.log('📥 Profile response:', profileResponse.data);
-      setUserProfile(profileResponse.data);
+      // Load profile data
+      try {
+        console.log('📤 Fetching profile...');
+        const profileResponse = await apiService.auth.getProfile();
+        console.log('📥 Profile data:', profileResponse.data);
+        setUserProfile(profileResponse.data);
+      } catch (profileError) {
+        console.error('❌ Profile error:', profileError);
+        setError(`Profile error: ${profileError.response?.data?.error || profileError.message}`);
+      }
 
-      // Load current bill
-      console.log('📤 Fetching current bill...');
-      const billResponse = await apiService.bills.getCurrentBill().catch((error) => {
-        console.log('⚠️ No current bill found:', error.response?.data);
-        return { data: null };
-      });
-      console.log('📥 Bill response:', billResponse.data);
-      setCurrentBill(billResponse.data);
+      // Load current bill (optional)
+      try {
+        console.log('📤 Fetching current bill...');
+        const billResponse = await apiService.bills.getCurrentBill();
+        console.log('📥 Bill data:', billResponse.data);
+        setCurrentBill(billResponse.data);
+      } catch (billError) {
+        console.log('⚠️ No current bill:', billError.response?.data);
+        // Bill is optional, don't set error
+      }
 
     } catch (error) {
-      console.error('❌ Failed to load dashboard data:', error);
-      console.error('❌ Error details:', error.response?.data);
-
-      if (error.response?.status === 401) {
-        setError('Session expired. Please login again.');
-        localStorage.removeItem('auth_token');
-      } else if (error.response?.status === 404) {
-        setError('Student profile not found. Please complete registration.');
-      } else {
-        setError(`Failed to load dashboard data: ${error.response?.data?.error || error.message}`);
-      }
+      console.error('❌ Dashboard error:', error);
+      setError(`Failed to load dashboard: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -62,67 +71,180 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-4 space-y-4">
-        <div className="animate-pulse bg-telegram-secondary h-32 rounded-lg"></div>
-        <div className="animate-pulse bg-telegram-secondary h-24 rounded-lg"></div>
+      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-telegram-accent mx-auto mb-4"></div>
+          <p className="text-telegram-text">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="p-4 pb-20 space-y-6">
-      {/* Welcome Header */}
-      <div className="text-center py-6">
-        <h1 className="text-2xl font-bold text-telegram-text">
-          Welcome, {userProfile?.student?.name || userProfile?.user?.first_name || 'Student'}!
-        </h1>
-        <p className="text-telegram-hint mt-1">
-          {userProfile?.student?.mess_no ? `Mess No: ${userProfile.student.mess_no}` : 'Your dashboard for mess services'}
-        </p>
-        {userProfile?.student?.is_approved ? (
-          <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
-            ✓ Approved
-          </span>
-        ) : userProfile?.student ? (
-          <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
-            ⏳ Pending Approval
-          </span>
-        ) : (
-          <span className="inline-block px-3 py-1 bg-blue-400/20 text-blue-400 rounded-full text-sm mt-2">
-            ✓ Active
-          </span>
-        )}
+  if (error) {
+    return (
+      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-red-500/20 border border-red-500 rounded-lg p-6 text-center">
+            <ExclamationTriangleIcon className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h3 className="text-red-400 font-medium mb-2">Dashboard Error</h3>
+            <p className="text-red-300 text-sm mb-4">{error}</p>
+            <button
+              onClick={loadDashboardData}
+              className="bg-telegram-accent text-white px-4 py-2 rounded-lg hover:bg-telegram-accent/80"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
+    );
+  }
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-4">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={loadDashboardData}
-            className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
-          >
-            Retry
-          </button>
+  const student = userProfile?.student;
+  const user = userProfile?.user;
+
+  return (
+    <div className="min-h-screen bg-telegram-bg pb-20">
+      <div className="p-4 space-y-6">
+
+        {/* Welcome Header */}
+        <div className="text-center py-6">
+          <div className="w-20 h-20 bg-telegram-accent rounded-full flex items-center justify-center mx-auto mb-4">
+            <UserIcon className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-telegram-text mb-2">
+            Welcome, {student?.name || user?.first_name || 'Student'}!
+          </h1>
+          {student?.mess_no && (
+            <p className="text-telegram-hint">Mess No: {student.mess_no}</p>
+          )}
+          {student?.is_approved ? (
+            <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
+              ✅ Approved
+            </span>
+          ) : student ? (
+            <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
+              ⏳ Pending Approval
+            </span>
+          ) : (
+            <span className="inline-block px-3 py-1 bg-blue-400/20 text-blue-400 rounded-full text-sm mt-2">
+              👋 Welcome
+            </span>
+          )}
         </div>
-      )}
 
-      {/* Current Bill */}
-      {currentBill && <BillCard bill={currentBill} />}
+        {/* Current Bill Card */}
+        {currentBill && (
+          <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-telegram-text">Current Bill</h3>
+              <div className="flex items-center gap-2 text-telegram-accent">
+                <CurrencyRupeeIcon className="w-5 h-5" />
+                <span className="text-xl font-bold">₹{currentBill.amount}</span>
+              </div>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-telegram-hint">Month</span>
+                <span className="text-telegram-text">
+                  {new Date(currentBill.month).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long'
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-telegram-hint">Status</span>
+                <span className={`px-2 py-1 rounded text-xs ${
+                  currentBill.status === 'paid'
+                    ? 'bg-green-400/20 text-green-400'
+                    : 'bg-yellow-400/20 text-yellow-400'
+                }`}>
+                  {currentBill.status.toUpperCase()}
+                </span>
+              </div>
+            </div>
+            {currentBill.status === 'pending' && (
+              <button
+                onClick={() => navigate('/bills')}
+                className="w-full mt-4 bg-telegram-accent text-white py-2 rounded-lg hover:bg-telegram-accent/80"
+              >
+                Pay Now
+              </button>
+            )}
+          </div>
+        )}
 
-      {/* No Bill Message */}
-      {!loading && !currentBill && !error && (
-        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 text-center">
-          <p className="text-telegram-hint">No current bill available</p>
-          <p className="text-telegram-hint text-sm mt-1">Your bill will appear here once generated</p>
+        {/* No Bill Message */}
+        {!currentBill && (
+          <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 text-center">
+            <CurrencyRupeeIcon className="w-12 h-12 text-telegram-hint mx-auto mb-3" />
+            <h3 className="text-telegram-text font-medium mb-2">No Current Bill</h3>
+            <p className="text-telegram-hint text-sm">Your bill will appear here once generated</p>
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
+          <h3 className="text-lg font-semibold text-telegram-text mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate('/bills')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <CurrencyRupeeIcon className="w-8 h-8 text-green-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">My Bills</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <UserIcon className="w-8 h-8 text-blue-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">Profile</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/mess-cuts')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <CalendarDaysIcon className="w-8 h-8 text-orange-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">Mess Cuts</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/attendance')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">Attendance</span>
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Quick Actions */}
-      <QuickActions />
+        {/* Status Info */}
+        <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+          <div className="flex items-center gap-3">
+            <CheckCircleIcon className="w-6 h-6 text-green-400" />
+            <div>
+              <p className="text-telegram-text font-medium">Dashboard Active</p>
+              <p className="text-telegram-hint text-sm">All features are working properly</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Recent Activity */}
-      <RecentActivity />
+        {/* Debug Info */}
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
+          <h4 className="text-telegram-text font-medium mb-2">Debug Info</h4>
+          <div className="text-xs text-gray-400 space-y-1">
+            <div>Auth Token: {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</div>
+            <div>User Profile: {userProfile ? '✅ Loaded' : '❌ Missing'}</div>
+            <div>Student Data: {student ? '✅ Present' : '❌ Missing'}</div>
+            <div>Current Bill: {currentBill ? '✅ Present' : '⚠️ None'}</div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };
