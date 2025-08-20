@@ -245,28 +245,34 @@ const AdminPanel = () => {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+          {/* Pending Approvals Card */}
+          <div className="card text-center">
+            <ClockIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-telegram-text">{stats.students?.pending_approvals || 0}</div>
+            <div className="text-telegram-hint text-sm">Pending Approval</div>
+          </div>
           <div className="card text-center">
             <UsersIcon className="w-8 h-8 text-telegram-accent mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">{stats.total_students || 0}</div>
+            <div className="text-2xl font-bold text-telegram-text">{stats.students?.total || 0}</div>
             <div className="text-telegram-hint text-sm">Total Students</div>
           </div>
-          
+
           <div className="card text-center">
             <CheckCircleIcon className="w-8 h-8 text-green-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">{stats.approved_students || 0}</div>
+            <div className="text-2xl font-bold text-telegram-text">{stats.students?.approved || 0}</div>
             <div className="text-telegram-hint text-sm">Approved</div>
           </div>
-          
+
           <div className="card text-center">
             <CurrencyRupeeIcon className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">₹{stats.total_revenue || 0}</div>
+            <div className="text-2xl font-bold text-telegram-text">₹{stats.bills?.total_revenue || 0}</div>
             <div className="text-telegram-hint text-sm">Total Revenue</div>
           </div>
-          
+
           <div className="card text-center">
             <ChartBarIcon className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">{stats.today_attendance || 0}</div>
+            <div className="text-2xl font-bold text-telegram-text">{stats.attendance?.today_count || 0}</div>
             <div className="text-telegram-hint text-sm">Today's Attendance</div>
           </div>
         </div>
@@ -289,7 +295,7 @@ const AdminPanel = () => {
       <div className="card">
         <h3 className="text-lg font-semibold text-telegram-text mb-4 flex items-center gap-2">
           <ClockIcon className="w-5 h-5" />
-          Student Verification ({pendingStudents.length})
+          Student Approval ({pendingStudents.length})
         </h3>
 
         {pendingStudents.length > 0 ? (
@@ -361,8 +367,8 @@ const AdminPanel = () => {
         ) : (
           <div className="text-center py-8">
             <CheckCircleIcon className="w-16 h-16 text-green-400 mx-auto mb-4" />
-            <h4 className="text-telegram-text font-medium mb-2">All Students Verified</h4>
-            <p className="text-telegram-hint">No pending student registrations to review</p>
+            <h4 className="text-telegram-text font-medium mb-2">All Students Approved</h4>
+            <p className="text-telegram-hint">No pending student approvals to review</p>
           </div>
         )}
       </div>
