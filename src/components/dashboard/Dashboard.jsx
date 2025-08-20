@@ -17,20 +17,44 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setError(null);
+      console.log('🔄 Loading dashboard data...');
 
-      // Load user profile
-      const profileResponse = await apiService.auth.getProfile().catch(() => ({ data: null }));
-      if (profileResponse.data) {
-        setUserProfile(profileResponse.data);
+      // Check if we have auth token
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        console.error('❌ No auth token found');
+        setError('Authentication required. Please login again.');
+        setLoading(false);
+        return;
       }
 
+      // Load user profile
+      console.log('📤 Fetching user profile...');
+      const profileResponse = await apiService.auth.getProfile();
+      console.log('📥 Profile response:', profileResponse.data);
+      setUserProfile(profileResponse.data);
+
       // Load current bill
-      const billResponse = await apiService.bills.getCurrentBill().catch(() => ({ data: null }));
+      console.log('📤 Fetching current bill...');
+      const billResponse = await apiService.bills.getCurrentBill().catch((error) => {
+        console.log('⚠️ No current bill found:', error.response?.data);
+        return { data: null };
+      });
+      console.log('📥 Bill response:', billResponse.data);
       setCurrentBill(billResponse.data);
 
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      setError('Failed to load dashboard data');
+      console.error('❌ Failed to load dashboard data:', error);
+      console.error('❌ Error details:', error.response?.data);
+
+      if (error.response?.status === 401) {
+        setError('Session expired. Please login again.');
+        localStorage.removeItem('auth_token');
+      } else if (error.response?.status === 404) {
+        setError('Student profile not found. Please complete registration.');
+      } else {
+        setError(`Failed to load dashboard data: ${error.response?.data?.error || error.message}`);
+      }
     } finally {
       setLoading(false);
     }

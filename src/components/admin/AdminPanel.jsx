@@ -71,44 +71,122 @@ const AdminPanel = () => {
   };
 
   // Admin action handlers
-  const handleGenerateBills = () => {
-    alert('Generate Bills feature will be available soon. This will create monthly bills for all active students.');
+  const handleGenerateBills = async () => {
+    try {
+      const confirmed = confirm('Generate bills for all active students for the current month?');
+      if (!confirmed) return;
+
+      await apiService.admin.generateBills({
+        month: new Date().toISOString().slice(0, 7) // YYYY-MM format
+      });
+
+      alert('Bills generated successfully for all active students!');
+      loadAdminData(); // Reload stats
+
+    } catch (error) {
+      console.error('Failed to generate bills:', error);
+      alert(`Failed to generate bills: ${error.response?.data?.error || error.message}`);
+    }
   };
 
-  const handleUnpaidStudents = () => {
-    alert('Unpaid Students report will show all students with pending payments.');
+  const handleUnpaidStudents = async () => {
+    try {
+      const response = await apiService.admin.getUnpaidStudents();
+      const unpaidCount = response.data.students?.length || 0;
+      alert(`Found ${unpaidCount} students with unpaid bills. Full report feature coming soon.`);
+    } catch (error) {
+      console.error('Failed to get unpaid students:', error);
+      alert(`Failed to get unpaid students: ${error.response?.data?.error || error.message}`);
+    }
   };
 
-  const handleAllStudents = () => {
-    alert('All Students view will show complete student database with search and filter options.');
+  const handleAllStudents = async () => {
+    try {
+      const response = await apiService.admin.getAllStudents({ page: 1, limit: 10 });
+      const totalStudents = response.data.total || 0;
+      alert(`Total students in database: ${totalStudents}. Full student management interface coming soon.`);
+    } catch (error) {
+      console.error('Failed to get all students:', error);
+      alert(`Failed to get students: ${error.response?.data?.error || error.message}`);
+    }
   };
 
   const handleAddStudent = () => {
-    alert('Add Student feature will allow manual student registration by admin.');
+    const name = prompt('Enter student name:');
+    const messNo = prompt('Enter mess number:');
+    const department = prompt('Enter department:');
+
+    if (name && messNo && department) {
+      // This would open a proper form in a real implementation
+      alert(`Add Student feature: Would add ${name} (${messNo}) from ${department}. Full form interface coming soon.`);
+    }
   };
 
   const handleModifyStudent = () => {
-    alert('Modify Student feature will allow editing student information.');
+    const messNo = prompt('Enter mess number of student to modify:');
+    if (messNo) {
+      alert(`Modify Student feature: Would open edit form for student ${messNo}. Full interface coming soon.`);
+    }
   };
 
   const handleDeleteStudent = () => {
-    alert('Delete Student feature will allow removing students from the system.');
+    const messNo = prompt('Enter mess number of student to delete:');
+    if (messNo) {
+      const confirmed = confirm(`Are you sure you want to delete student ${messNo}? This action cannot be undone.`);
+      if (confirmed) {
+        alert(`Delete Student feature: Would delete student ${messNo}. Full interface coming soon.`);
+      }
+    }
   };
 
-  const handleSendNotificationAll = () => {
-    alert('Send Notification to All will broadcast messages to all students via Telegram.');
+  const handleSendNotificationAll = async () => {
+    const message = prompt('Enter message to send to all students:');
+    if (message) {
+      try {
+        await apiService.admin.sendNotificationToAll({ message });
+        alert('Notification sent to all students successfully!');
+      } catch (error) {
+        console.error('Failed to send notification:', error);
+        alert(`Failed to send notification: ${error.response?.data?.error || error.message}`);
+      }
+    }
   };
 
   const handleSendNotificationSpecific = () => {
-    alert('Send to Specific Students will allow targeted messaging.');
+    const messNumbers = prompt('Enter mess numbers (comma-separated):');
+    const message = prompt('Enter message:');
+
+    if (messNumbers && message) {
+      alert(`Send Notification feature: Would send "${message}" to students: ${messNumbers}. Full interface coming soon.`);
+    }
   };
 
-  const handleAttendanceReport = () => {
-    alert('Attendance Report will show detailed attendance analytics.');
+  const handleAttendanceReport = async () => {
+    try {
+      const response = await apiService.admin.getAttendanceReport({
+        start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        end_date: new Date().toISOString().slice(0, 10)
+      });
+
+      alert(`Attendance Report (Last 7 days): ${response.data.total_scans || 0} total scans. Full report interface coming soon.`);
+    } catch (error) {
+      console.error('Failed to get attendance report:', error);
+      alert(`Failed to get attendance report: ${error.response?.data?.error || error.message}`);
+    }
   };
 
-  const handleRevenueReport = () => {
-    alert('Revenue Report will show financial analytics and payment statistics.');
+  const handleRevenueReport = async () => {
+    try {
+      const response = await apiService.admin.getRevenueReport({
+        month: new Date().toISOString().slice(0, 7)
+      });
+
+      const revenue = response.data.total_revenue || 0;
+      alert(`Revenue Report (Current Month): ₹${revenue}. Full report interface coming soon.`);
+    } catch (error) {
+      console.error('Failed to get revenue report:', error);
+      alert(`Failed to get revenue report: ${error.response?.data?.error || error.message}`);
+    }
   };
 
   // This component is only rendered for admin role users, so no access check needed

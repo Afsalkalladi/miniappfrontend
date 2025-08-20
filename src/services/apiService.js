@@ -49,7 +49,7 @@ export const apiService = {
 
   bills: {
     getCurrentBill: () => api.get('/mess/bills/current/'),
-    getAllBills: () => api.get('/mess/bills/all/'),
+    getAllBills: () => api.get('/mess/bills/'),
     submitPayment: (billId, data) => api.post(`/mess/bills/${billId}/payment/`, data),
   },
 
@@ -73,6 +73,28 @@ export const apiService = {
     getPendingStudents: () => api.get('/auth/admin/pending-students/'),
     approveStudent: (studentId) => api.post(`/auth/admin/approve-student/${studentId}/`),
     rejectStudent: (studentId) => api.post(`/auth/admin/reject-student/${studentId}/`),
+
+    // Bill Management
+    generateBills: (data) => api.post('/mess/admin/generate-bills/', data),
+    getUnpaidStudents: () => api.get('/mess/admin/unpaid-students/'),
+    verifyPayment: (billId, data) => api.post(`/mess/admin/verify-payment/${billId}/`, data),
+    getBillReports: (params) => api.get('/mess/admin/bill-reports/', { params }),
+
+    // Student Management
+    getAllStudents: (params) => api.get('/mess/admin/students/', { params }),
+    addStudent: (data) => api.post('/mess/admin/students/', data),
+    updateStudent: (studentId, data) => api.put(`/mess/admin/students/${studentId}/`, data),
+    deleteStudent: (studentId) => api.delete(`/mess/admin/students/${studentId}/`),
+
+    // Communication
+    sendNotificationToAll: (data) => api.post('/mess/admin/notifications/broadcast/', data),
+    sendNotificationToSpecific: (data) => api.post('/mess/admin/notifications/targeted/', data),
+
+    // Reports
+    getAttendanceReport: (params) => api.get('/mess/admin/reports/attendance/', { params }),
+    getRevenueReport: (params) => api.get('/mess/admin/reports/revenue/', { params }),
+    getMessCutReport: (params) => api.get('/mess/admin/reports/mess-cuts/', { params }),
+    exportData: (type, params) => api.get(`/mess/admin/export/${type}/`, { params, responseType: 'blob' }),
   },
 
   // Superuser endpoints removed - using Django admin for whitelist management
