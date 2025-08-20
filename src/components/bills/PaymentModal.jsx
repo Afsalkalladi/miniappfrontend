@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { XMarkIcon, CopyIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -89,7 +89,7 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
                   onClick={() => copyToClipboard(amount.toString(), 'amount')}
                   className="p-1 text-telegram-hint hover:text-telegram-text"
                 >
-                  <CopyIcon className="w-4 h-4" />
+                  <ClipboardDocumentIcon className="w-4 h-4" />
                 </button>
                 {copied === 'amount' && <span className="text-green-400 text-xs">Copied!</span>}
               </div>
@@ -104,7 +104,7 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
                   onClick={() => copyToClipboard(messNo, 'messno')}
                   className="p-1 text-telegram-hint hover:text-telegram-text"
                 >
-                  <CopyIcon className="w-4 h-4" />
+                  <ClipboardDocumentIcon className="w-4 h-4" />
                 </button>
                 {copied === 'messno' && <span className="text-green-400 text-xs">Copied!</span>}
               </div>
