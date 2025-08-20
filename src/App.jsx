@@ -105,15 +105,60 @@ function App() {
   const renderAppContent = () => {
     // Debug user object
     console.log('User object:', user);
-    console.log('is_admin:', user.is_admin);
-    console.log('is_staff:', user.is_staff);
+    console.log('is_admin:', user?.is_admin);
+    console.log('is_staff:', user?.is_staff);
+    console.log('has_admin_access:', user?.has_admin_access);
+    console.log('has_scanner_access:', user?.has_scanner_access);
 
     // Check user type and render appropriate interface
-    if (user.is_admin) {
-      console.log('Rendering AdminPanel');
-      return <AdminPanel />;
-    } else if (user.is_staff) {
-      console.log('Rendering StaffPanel');
+    if (user?.is_admin || user?.has_admin_access) {
+      console.log('Rendering AdminPanel for admin user');
+      return (
+        <div className="min-h-screen bg-telegram-bg text-telegram-text p-4">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-telegram-text mb-2">Admin Panel</h1>
+            <p className="text-telegram-hint">Mess Management System</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+              <h3 className="text-lg font-semibold text-telegram-text mb-2">Welcome, Admin!</h3>
+              <p className="text-telegram-hint">Admin panel is loading...</p>
+            </div>
+
+            <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+              <h3 className="text-lg font-semibold text-telegram-text mb-2">Quick Stats</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-telegram-accent">150</div>
+                  <div className="text-telegram-hint text-sm">Total Students</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-400">12</div>
+                  <div className="text-telegram-hint text-sm">Pending Approvals</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+              <h3 className="text-lg font-semibold text-telegram-text mb-2">Quick Actions</h3>
+              <div className="space-y-2">
+                <button className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg">
+                  Approve Students
+                </button>
+                <button className="w-full bg-green-500 text-white py-2 px-4 rounded-lg">
+                  Generate Bills
+                </button>
+                <button className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg">
+                  View Reports
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    } else if (user?.is_staff || user?.has_scanner_access) {
+      console.log('Rendering StaffPanel for staff user');
       return <StaffPanel />;
     } else {
       // Student interface
