@@ -1,16 +1,24 @@
 import React from 'react';
-import { useAuthStore } from '../../stores/authStore';
-import { 
-  UserIcon, 
-  BuildingOfficeIcon, 
-  PhoneIcon, 
+import {
+  UserIcon,
+  BuildingOfficeIcon,
+  PhoneIcon,
   HomeIcon,
-  QrCodeIcon 
+  QrCodeIcon
 } from '@heroicons/react/24/outline';
 
 const Profile = () => {
-  const { user, logout } = useAuthStore();
-  const student = user?.student;
+  // Mock data for now - will be replaced with proper user data
+  const student = {
+    name: 'Student User',
+    mess_no: 'Loading...',
+    department: 'Loading...',
+    year_of_study: 'Loading...',
+    room_no: 'Loading...',
+    mobile_number: 'Loading...',
+    is_approved: true,
+    qr_code: null
+  };
 
   const profileItems = [
     {
@@ -58,7 +66,7 @@ const Profile = () => {
           <UserIcon className="w-12 h-12 text-white" />
         </div>
         <h2 className="text-xl font-semibold text-telegram-text">
-          {student?.name || `${user?.first_name} ${user?.last_name}`}
+          {student?.name}
         </h2>
         {student?.is_approved ? (
           <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
@@ -105,7 +113,10 @@ const Profile = () => {
 
       {/* Logout Button */}
       <button
-        onClick={logout}
+        onClick={() => {
+          localStorage.removeItem('auth_token');
+          window.location.reload();
+        }}
         className="w-full mt-6 bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
       >
         Logout

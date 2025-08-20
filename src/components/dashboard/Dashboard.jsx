@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '../../stores/authStore';
 import { apiService } from '../../services/apiService';
 import BillCard from './BillCard';
 import QuickActions from './QuickActions';
 import RecentActivity from './RecentActivity';
 
 const Dashboard = () => {
-  const { user } = useAuthStore();
   const [currentBill, setCurrentBill] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,20 +39,14 @@ const Dashboard = () => {
       {/* Welcome Header */}
       <div className="text-center py-6">
         <h1 className="text-2xl font-bold text-telegram-text">
-          Welcome, {user?.student?.name || user?.first_name}!
+          Welcome to Mess Management!
         </h1>
         <p className="text-telegram-hint mt-1">
-          Mess No: {user?.student?.mess_no || 'Not assigned'}
+          Your dashboard for mess services
         </p>
-        {user?.student?.is_approved ? (
-          <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
-            ✓ Approved
-          </span>
-        ) : (
-          <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
-            ⏳ Pending Approval
-          </span>
-        )}
+        <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
+          ✓ Active
+        </span>
       </div>
 
       {/* Current Bill */}
