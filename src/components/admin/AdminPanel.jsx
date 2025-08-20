@@ -85,7 +85,12 @@ const AdminPanel = () => {
 
     } catch (error) {
       console.error('Failed to generate bills:', error);
-      alert(`Failed to generate bills: ${error.response?.data?.error || error.message}`);
+
+      if (error.response?.status === 404) {
+        alert('Bill generation feature is being deployed. Please try again in a few minutes.');
+      } else {
+        alert(`Failed to generate bills: ${error.response?.data?.error || error.message}`);
+      }
     }
   };
 
@@ -96,7 +101,12 @@ const AdminPanel = () => {
       alert(`Found ${unpaidCount} students with unpaid bills. Full report feature coming soon.`);
     } catch (error) {
       console.error('Failed to get unpaid students:', error);
-      alert(`Failed to get unpaid students: ${error.response?.data?.error || error.message}`);
+
+      if (error.response?.status === 404) {
+        alert('Unpaid students report feature is being deployed. Please try again in a few minutes.');
+      } else {
+        alert(`Failed to get unpaid students: ${error.response?.data?.error || error.message}`);
+      }
     }
   };
 
@@ -147,7 +157,12 @@ const AdminPanel = () => {
         alert('Notification sent to all students successfully!');
       } catch (error) {
         console.error('Failed to send notification:', error);
-        alert(`Failed to send notification: ${error.response?.data?.error || error.message}`);
+
+        if (error.response?.status === 404) {
+          alert('Notification feature is being deployed. Please try again in a few minutes.');
+        } else {
+          alert(`Failed to send notification: ${error.response?.data?.error || error.message}`);
+        }
       }
     }
   };
@@ -256,6 +271,19 @@ const AdminPanel = () => {
           </div>
         </div>
       )}
+
+      {/* Deployment Status Notice */}
+      <div className="mb-6 p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className="text-blue-400">🚀</div>
+          <div>
+            <p className="text-blue-400 text-sm font-medium">New Admin Features Deploying</p>
+            <p className="text-blue-300 text-xs mt-1">
+              Some advanced features may show "being deployed" temporarily while backend updates.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Pending Student Approvals */}
       <div className="card">
