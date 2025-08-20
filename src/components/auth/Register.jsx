@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { apiService } from '../../services/apiService';
-import { 
-  UserIcon, 
-  BuildingOfficeIcon, 
-  PhoneIcon, 
+import {
+  UserIcon,
+  BuildingOfficeIcon,
+  PhoneIcon,
   HomeIcon,
-  AcademicCapIcon 
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
+import BackButton from '../common/BackButton';
 
 const Register = ({ telegramUser, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -130,6 +131,11 @@ const Register = ({ telegramUser, onSuccess }) => {
   return (
     <div className="min-h-screen bg-telegram-bg p-4">
       <div className="max-w-md mx-auto">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton label="Back to Login" />
+        </div>
+
         <div className="text-center mb-6">
           <div className="w-20 h-20 bg-telegram-accent rounded-full flex items-center justify-center mx-auto mb-4">
             <UserIcon className="w-10 h-10 text-white" />

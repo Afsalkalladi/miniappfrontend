@@ -33,7 +33,16 @@ api.interceptors.response.use(
 export const apiService = {
   auth: {
     loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
-    registerStudent: (data) => api.post('/auth/register-student/', data),
+    registerStudent: (data) => {
+      // Handle FormData for file uploads
+      const config = {};
+      if (data instanceof FormData) {
+        config.headers = {
+          'Content-Type': 'multipart/form-data',
+        };
+      }
+      return api.post('/auth/register-student/', data, config);
+    },
     getProfile: () => api.get('/auth/profile/'),
     updateProfile: (data) => api.patch('/auth/profile/', data),
   },
