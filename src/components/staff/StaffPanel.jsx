@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { QrScanner } from '@yudiel/react-qr-scanner';
 import { apiService } from '../../services/apiService';
 import { CheckCircleIcon, XCircleIcon, QrCodeIcon, UserIcon } from '@heroicons/react/24/outline';
-import { useAuthStore } from '../../stores/authStore';
 
 const StaffPanel = () => {
-  const { user, logout } = useAuthStore();
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
   const [mealType, setMealType] = useState('lunch');
@@ -83,11 +81,14 @@ const StaffPanel = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-telegram-text font-medium">{user?.first_name} {user?.last_name}</p>
+            <p className="text-telegram-text font-medium">Staff User</p>
             <p className="text-green-400 text-sm">Staff Scanner</p>
           </div>
           <button
-            onClick={logout}
+            onClick={() => {
+              localStorage.removeItem('auth_token');
+              window.location.reload();
+            }}
             className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
             <UserIcon className="w-5 h-5" />

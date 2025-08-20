@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '../../stores/authStore';
 import { apiService } from '../../services/apiService';
-import { 
-  UsersIcon, 
-  CurrencyRupeeIcon, 
+import {
+  UsersIcon,
+  CurrencyRupeeIcon,
   ChartBarIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -11,7 +10,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 const AdminPanel = () => {
-  const { user, logout } = useAuthStore();
   const [stats, setStats] = useState(null);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,14 +80,17 @@ const AdminPanel = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-telegram-text font-medium">{user?.first_name} {user?.last_name}</p>
+            <p className="text-telegram-text font-medium">Admin User</p>
             <p className="text-blue-400 text-sm">Admin Panel</p>
           </div>
           <button
-            onClick={logout}
+            onClick={() => {
+              localStorage.removeItem('auth_token');
+              window.location.reload();
+            }}
             className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
-            <UserIcon className="w-5 h-5" />
+            <UsersIcon className="w-5 h-5" />
           </button>
         </div>
       </div>
