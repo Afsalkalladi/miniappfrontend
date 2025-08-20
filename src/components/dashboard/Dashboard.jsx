@@ -7,6 +7,8 @@ import RecentActivity from './RecentActivity';
 const Dashboard = () => {
   const [currentBill, setCurrentBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -14,12 +16,21 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
+      setError(null);
+
+      // Load user profile
+      const profileResponse = await apiService.auth.getProfile().catch(() => ({ data: null }));
+      if (profileResponse.data) {
+        setUserProfile(profileResponse.data);
+      }
+
+      // Load current bill
       const billResponse = await apiService.bills.getCurrentBill().catch(() => ({ data: null }));
       setCurrentBill(billResponse.data);
+
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      // Set current bill to null if there's an error
-      setCurrentBill(null);
+      setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -39,18 +50,49 @@ const Dashboard = () => {
       {/* Welcome Header */}
       <div className="text-center py-6">
         <h1 className="text-2xl font-bold text-telegram-text">
-          Welcome to Mess Management!
+          Welcome, {userProfile?.student?.name || userProfile?.user?.first_name || 'Student'}!
         </h1>
         <p className="text-telegram-hint mt-1">
-          Your dashboard for mess services
+          {userProfile?.student?.mess_no ? `Mess No: ${userProfile.student.mess_no}` : 'Your dashboard for mess services'}
         </p>
-        <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
-          ✓ Active
-        </span>
+        {userProfile?.student?.is_approved ? (
+          <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
+            ✓ Approved
+          </span>
+        ) : userProfile?.student ? (
+          <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
+            ⏳ Pending Approval
+          </span>
+        ) : (
+          <span className="inline-block px-3 py-1 bg-blue-400/20 text-blue-400 rounded-full text-sm mt-2">
+            ✓ Active
+          </span>
+        )}
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-4">
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Current Bill */}
       {currentBill && <BillCard bill={currentBill} />}
+
+      {/* No Bill Message */}
+      {!loading && !currentBill && !error && (
+        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 text-center">
+          <p className="text-telegram-hint">No current bill available</p>
+          <p className="text-telegram-hint text-sm mt-1">Your bill will appear here once generated</p>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <QuickActions />

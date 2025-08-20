@@ -1,24 +1,81 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   UserIcon,
   BuildingOfficeIcon,
   PhoneIcon,
   HomeIcon,
-  QrCodeIcon
+  QrCodeIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { apiService } from '../../services/apiService';
 
 const Profile = () => {
-  // Mock data for now - will be replaced with proper user data
-  const student = {
-    name: 'Student User',
-    mess_no: 'Loading...',
-    department: 'Loading...',
-    year_of_study: 'Loading...',
-    room_no: 'Loading...',
-    mobile_number: 'Loading...',
-    is_approved: true,
-    qr_code: null
+  const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      setError(null);
+      const response = await apiService.auth.getProfile();
+      setUserProfile(response.data);
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+      setError('Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const regenerateQRCode = async () => {
+    try {
+      setRegeneratingQR(true);
+      // Add QR regeneration API call here when available
+      // await apiService.student.regenerateQRCode();
+      // await loadProfile(); // Reload profile to get new QR code
+      alert('QR code regeneration feature will be available soon');
+    } catch (error) {
+      console.error('Failed to regenerate QR code:', error);
+      alert('Failed to regenerate QR code');
+    } finally {
+      setRegeneratingQR(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 pb-20">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-telegram-accent mx-auto mb-4"></div>
+          <p className="text-telegram-hint">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 pb-20">
+        <div className="bg-red-500/20 border border-red-500 rounded-lg p-6 text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={loadProfile}
+            className="bg-telegram-accent text-white px-4 py-2 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const student = userProfile?.student;
+  const user = userProfile?.user;
 
   const profileItems = [
     {
@@ -108,6 +165,26 @@ const Profile = () => {
           <p className="text-telegram-hint text-sm mt-2">
             Show this QR code for attendance marking
           </p>
+          <button
+            onClick={regenerateQRCode}
+            disabled={regeneratingQR}
+            className="mt-4 flex items-center gap-2 bg-telegram-accent text-white px-4 py-2 rounded-lg mx-auto hover:bg-telegram-accent/80 transition-colors disabled:opacity-50"
+          >
+            <ArrowPathIcon className={`w-4 h-4 ${regeneratingQR ? 'animate-spin' : ''}`} />
+            {regeneratingQR ? 'Regenerating...' : 'Regenerate QR Code'}
+          </button>
+        </div>
+      )}
+
+      {/* No QR Code Message */}
+      {student && !student.qr_code && (
+        <div className="card mt-6 text-center">
+          <h3 className="text-lg font-semibold text-telegram-text mb-4">QR Code</h3>
+          <div className="bg-telegram-secondary p-6 rounded-lg">
+            <QrCodeIcon className="w-16 h-16 text-telegram-hint mx-auto mb-4" />
+            <p className="text-telegram-hint">QR code not generated yet</p>
+            <p className="text-telegram-hint text-sm mt-1">Contact admin to generate your QR code</p>
+          </div>
         </div>
       )}
 

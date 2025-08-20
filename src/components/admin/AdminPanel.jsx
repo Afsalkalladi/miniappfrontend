@@ -37,23 +37,78 @@ const AdminPanel = () => {
 
   const handleStudentApproval = async (studentId, action) => {
     try {
-      await apiService.admin.approveStudent(studentId, { action });
-      
+      if (action === 'approve') {
+        await apiService.admin.approveStudent(studentId);
+      } else if (action === 'reject') {
+        await apiService.admin.rejectStudent(studentId);
+      }
+
       // Remove from pending list
       setPendingStudents(prev => prev.filter(s => s.id !== studentId));
-      
+
+      // Reload stats to update counts
+      loadAdminData();
+
       // Haptic feedback
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
+
+      // Show success message
+      alert(`Student ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
+
     } catch (error) {
       console.error('Failed to process student approval:', error);
-      
+
       // Haptic feedback
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
       }
+
+      // Show error message
+      alert(`Failed to ${action} student: ${error.response?.data?.error || error.message}`);
     }
+  };
+
+  // Admin action handlers
+  const handleGenerateBills = () => {
+    alert('Generate Bills feature will be available soon. This will create monthly bills for all active students.');
+  };
+
+  const handleUnpaidStudents = () => {
+    alert('Unpaid Students report will show all students with pending payments.');
+  };
+
+  const handleAllStudents = () => {
+    alert('All Students view will show complete student database with search and filter options.');
+  };
+
+  const handleAddStudent = () => {
+    alert('Add Student feature will allow manual student registration by admin.');
+  };
+
+  const handleModifyStudent = () => {
+    alert('Modify Student feature will allow editing student information.');
+  };
+
+  const handleDeleteStudent = () => {
+    alert('Delete Student feature will allow removing students from the system.');
+  };
+
+  const handleSendNotificationAll = () => {
+    alert('Send Notification to All will broadcast messages to all students via Telegram.');
+  };
+
+  const handleSendNotificationSpecific = () => {
+    alert('Send to Specific Students will allow targeted messaging.');
+  };
+
+  const handleAttendanceReport = () => {
+    alert('Attendance Report will show detailed attendance analytics.');
+  };
+
+  const handleRevenueReport = () => {
+    alert('Revenue Report will show financial analytics and payment statistics.');
   };
 
   // This component is only rendered for admin role users, so no access check needed
@@ -212,16 +267,16 @@ const AdminPanel = () => {
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Bill Management</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn-primary text-sm py-2">
+            <button onClick={handleGenerateBills} className="btn-primary text-sm py-2">
               Generate Bills
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleUnpaidStudents} className="btn-secondary text-sm py-2">
               Unpaid Students
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleUnpaidStudents} className="btn-secondary text-sm py-2">
               Payment Verification
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleRevenueReport} className="btn-secondary text-sm py-2">
               Bill Reports
             </button>
           </div>
@@ -231,16 +286,16 @@ const AdminPanel = () => {
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Student Management</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleAllStudents} className="btn-secondary text-sm py-2">
               All Students
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleAddStudent} className="btn-secondary text-sm py-2">
               Add Student
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleModifyStudent} className="btn-secondary text-sm py-2">
               Modify Student
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleDeleteStudent} className="btn-secondary text-sm py-2">
               Delete Student
             </button>
           </div>
@@ -250,10 +305,10 @@ const AdminPanel = () => {
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Communication</h3>
           <div className="grid grid-cols-1 gap-3">
-            <button className="btn-primary text-sm py-2">
+            <button onClick={handleSendNotificationAll} className="btn-primary text-sm py-2">
               Send Notification to All
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleSendNotificationSpecific} className="btn-secondary text-sm py-2">
               Send to Specific Students
             </button>
           </div>
@@ -263,16 +318,16 @@ const AdminPanel = () => {
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Reports & Analytics</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleAttendanceReport} className="btn-secondary text-sm py-2">
               Attendance Report
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleRevenueReport} className="btn-secondary text-sm py-2">
               Revenue Report
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleAttendanceReport} className="btn-secondary text-sm py-2">
               Mess Cut Report
             </button>
-            <button className="btn-secondary text-sm py-2">
+            <button onClick={handleRevenueReport} className="btn-secondary text-sm py-2">
               Export Data
             </button>
           </div>
