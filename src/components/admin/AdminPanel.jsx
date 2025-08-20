@@ -112,12 +112,41 @@ const AdminPanel = () => {
 
   const handleAllStudents = async () => {
     try {
-      const response = await apiService.admin.getAllStudents({ page: 1, limit: 10 });
-      const totalStudents = response.data.total || 0;
-      alert(`Total students in database: ${totalStudents}. Full student management interface coming soon.`);
+      const response = await apiService.admin.getAllStudents({ page: 1, limit: 50 });
+      const students = response.data.results || response.data || [];
+      const totalStudents = response.data.count || students.length;
+
+      if (students.length === 0) {
+        alert('No students found in the database.');
+        return;
+      }
+
+      // Create a detailed summary
+      const approvedCount = students.filter(s => s.is_approved).length;
+      const pendingCount = students.filter(s => !s.is_approved).length;
+
+      const summary = `📊 Student Database Summary:
+
+Total Students: ${totalStudents}
+✅ Approved: ${approvedCount}
+⏳ Pending: ${pendingCount}
+
+Recent Students:
+${students.slice(0, 5).map(s =>
+  `• ${s.name} (${s.mess_no}) - ${s.is_approved ? '✅' : '⏳'}`
+).join('\n')}
+
+${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
+
+      alert(summary);
     } catch (error) {
       console.error('Failed to get all students:', error);
-      alert(`Failed to get students: ${error.response?.data?.error || error.message}`);
+
+      if (error.response?.status === 404) {
+        alert('Student management feature is being deployed. Please try again in a few minutes.');
+      } else {
+        alert(`Failed to get students: ${error.response?.data?.error || error.message}`);
+      }
     }
   };
 
@@ -151,10 +180,23 @@ const AdminPanel = () => {
 
   const handleSendNotificationAll = async () => {
     const message = prompt('Enter message to send to all students:');
-    if (message) {
+    if (message && message.trim()) {
       try {
-        await apiService.admin.sendNotificationToAll({ message });
-        alert('Notification sent to all students successfully!');
+        const confirmed = confirm(`Send notification to all students?\n\nMessage: "${message}"`);
+        if (!confirmed) return;
+
+        await apiService.notifications.sendToAll({
+          title: 'Admin Notification',
+          message: message.trim(),
+          type: 'ADMIN_ANNOUNCEMENT'
+        });
+
+        alert('✅ Notification sent to all students successfully!');
+
+        // Haptic feedback
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
       } catch (error) {
         console.error('Failed to send notification:', error);
 

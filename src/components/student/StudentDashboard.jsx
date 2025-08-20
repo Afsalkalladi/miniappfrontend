@@ -8,10 +8,14 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
+import StudentBills from './StudentBills';
+import StudentAttendance from './StudentAttendance';
+import StudentMessCuts from './StudentMessCuts';
 
 const StudentDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentView, setCurrentView] = useState('dashboard');
   const [dashboardData, setDashboardData] = useState({
     profile: null,
     currentBill: null,
@@ -92,6 +96,24 @@ const StudentDashboard = ({ user }) => {
     localStorage.removeItem('auth_token');
     window.location.reload();
   };
+
+  const handleQuickAction = (action) => {
+    console.log(`🎯 Quick action: ${action}`);
+    setCurrentView(action);
+  };
+
+  // Render different views based on currentView
+  if (currentView === 'bills') {
+    return <StudentBills onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'attendance') {
+    return <StudentAttendance onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'mess-cuts') {
+    return <StudentMessCuts onBack={() => setCurrentView('dashboard')} />;
+  }
 
   if (loading) {
     return (
@@ -201,24 +223,36 @@ const StudentDashboard = ({ user }) => {
         <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
-            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
+            <button
+              onClick={() => handleQuickAction('bills')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
               <CurrencyRupeeIcon className="w-8 h-8 text-green-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">My Bills</span>
             </button>
-            
-            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
-              <UserIcon className="w-8 h-8 text-blue-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Profile</span>
+
+            <button
+              onClick={() => handleQuickAction('attendance')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">Attendance</span>
             </button>
-            
-            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
+
+            <button
+              onClick={() => handleQuickAction('mess-cuts')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
               <CalendarDaysIcon className="w-8 h-8 text-orange-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">Mess Cuts</span>
             </button>
-            
-            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
-              <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Attendance</span>
+
+            <button
+              onClick={() => alert('Profile management coming soon!')}
+              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
+            >
+              <UserIcon className="w-8 h-8 text-blue-500 mb-2" />
+              <span className="text-telegram-text text-sm font-medium">Profile</span>
             </button>
           </div>
         </div>

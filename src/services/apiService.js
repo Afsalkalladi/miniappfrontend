@@ -90,6 +90,10 @@ export const apiService = {
     sendNotificationToAll: (data) => api.post('/mess/admin/notifications/broadcast/', data),
     sendNotificationToSpecific: (data) => api.post('/mess/admin/notifications/targeted/', data),
 
+    // Student Management
+    getAllStudents: (params) => api.get('/students/list/', { params }),
+    getStudentDetails: (messNo) => api.get(`/students/${messNo}/`),
+
     // Reports
     getAttendanceReport: (params) => api.get('/mess/admin/reports/attendance/', { params }),
     getRevenueReport: (params) => api.get('/mess/admin/reports/revenue/', { params }),
@@ -103,5 +107,30 @@ export const apiService = {
     regenerateQR: () => api.post('/students/regenerate-qr/'),
     getNotifications: () => api.get('/notifications/my/'),
     markNotificationRead: (notificationId) => api.post(`/notifications/${notificationId}/read/`),
+  },
+
+  notifications: {
+    sendToAll: (data) => api.post('/notifications/send-to-all/', data),
+    sendToStudent: (studentId, data) => api.post(`/notifications/send-to-student/${studentId}/`, data),
+    getStats: () => api.get('/notifications/stats/'),
+  },
+
+  // Bills endpoints for students
+  bills: {
+    getCurrentBill: () => api.get('/mess/bills/current/'),
+    getAllBills: () => api.get('/mess/bills/'),
+    submitPayment: (billId, data) => api.post(`/mess/bills/${billId}/payment/`, data),
+  },
+
+  // Attendance endpoints for students
+  attendance: {
+    getMyAttendance: () => api.get('/mess/attendance/my/'),
+    markAttendance: (data) => api.post('/mess/attendance/mark/', data),
+  },
+
+  // Mess cuts endpoints for students
+  messCuts: {
+    getMyMessCuts: () => api.get('/mess/mess-cuts/my/'),
+    applyMessCut: (data) => api.post('/mess/mess-cuts/', data),
   },
 };
