@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  UserIcon, 
-  CurrencyRupeeIcon, 
+import {
+  UserIcon,
+  CurrencyRupeeIcon,
   CalendarDaysIcon,
   ChartBarIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { apiService } from '../../services/apiService';
 
 const StudentDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
@@ -28,36 +29,56 @@ const StudentDashboard = ({ user }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('📤 Loading dashboard data...');
-      
-      // Mock API calls for now - will implement real API later
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const mockData = {
-        profile: {
-          name: user?.student?.name || 'Student Name',
-          mess_no: user?.student?.mess_no || '2021001',
-          department: user?.student?.department || 'Computer Science',
-          is_approved: user?.student?.is_approved || true
-        },
-        currentBill: {
-          id: 1,
-          amount: '2500.00',
-          month: '2025-08-01',
-          status: 'pending',
-          due_date: '2025-08-15'
-        },
-        recentActivity: [
-          { type: 'attendance', message: 'Lunch attendance marked', time: '2 hours ago' },
-          { type: 'bill', message: 'August bill generated', time: '1 day ago' },
-          { type: 'mess_cut', message: 'Mess cut approved for Aug 25-27', time: '3 days ago' }
-        ]
+
+      // Load user profile
+      let profileData = null;
+      try {
+        const profileResponse = await apiService.auth.getProfile();
+        console.log('📥 Profile data:', profileResponse.data);
+        profileData = {
+          name: profileResponse.data.student?.name || profileResponse.data.user?.first_name || 'Student',
+          mess_no: profileResponse.data.student?.mess_no || 'N/A',
+          department: profileResponse.data.student?.department || 'N/A',
+          is_approved: profileResponse.data.student?.is_approved || false
+        };
+      } catch (error) {
+        console.error('⚠️ Failed to load profile:', error);
+        profileData = {
+          name: user?.student?.name || user?.user?.first_name || 'Student',
+          mess_no: user?.student?.mess_no || 'N/A',
+          department: user?.student?.department || 'N/A',
+          is_approved: user?.student?.is_approved || false
+        };
+      }
+
+      // Load current bill
+      let currentBillData = null;
+      try {
+        const billResponse = await apiService.bills.getCurrentBill();
+        console.log('📥 Current bill:', billResponse.data);
+        currentBillData = billResponse.data;
+      } catch (error) {
+        console.log('⚠️ No current bill found:', error.response?.data);
+        // No current bill is okay
+      }
+
+      // Mock recent activity for now
+      const recentActivity = [
+        { type: 'login', message: 'Logged into dashboard', time: 'Just now' },
+        { type: 'system', message: 'Profile data loaded', time: '1 minute ago' }
+      ];
+
+      const dashboardData = {
+        profile: profileData,
+        currentBill: currentBillData,
+        recentActivity
       };
-      
-      console.log('📥 Mock dashboard data:', mockData);
-      setDashboardData(mockData);
-      
+
+      console.log('📥 Dashboard data loaded:', dashboardData);
+      setDashboardData(dashboardData);
+
     } catch (error) {
       console.error('❌ Failed to load dashboard:', error);
       setError('Failed to load dashboard data');

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { apiService } from '../../services/apiService';
 
 const StudentLogin = ({ telegramUser, onLoginSuccess, onNeedsRegistration }) => {
   const [loading, setLoading] = useState(false);
@@ -12,32 +13,33 @@ const StudentLogin = ({ telegramUser, onLoginSuccess, onNeedsRegistration }) => 
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('🔐 Attempting student login...');
-      
-      // Mock API call for now - will implement real API later
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For testing, simulate different responses
-      const mockResponse = {
-        needs_registration: true, // Change this to test different flows
-        user: null,
-        token: null
+
+      // Real API call to backend
+      const loginData = {
+        telegram_id: telegramUser.id.toString(),
+        username: telegramUser.username || '',
+        first_name: telegramUser.first_name || '',
+        last_name: telegramUser.last_name || ''
       };
-      
-      console.log('📥 Mock login response:', mockResponse);
-      
-      if (mockResponse.needs_registration) {
+
+      console.log('📤 Sending login data:', loginData);
+
+      const response = await apiService.auth.loginWithTelegram(loginData);
+      console.log('📥 Login response:', response.data);
+
+      if (response.data.needs_registration) {
         console.log('📝 User needs registration');
         onNeedsRegistration();
       } else {
         console.log('✅ Login successful');
-        onLoginSuccess(mockResponse);
+        onLoginSuccess(response.data);
       }
-      
+
     } catch (error) {
       console.error('❌ Login failed:', error);
-      setError('Login failed. Please try again.');
+      setError(error.response?.data?.error || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

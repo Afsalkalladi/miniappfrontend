@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  UserIcon, 
-  BuildingOfficeIcon, 
-  PhoneIcon, 
+import {
+  UserIcon,
+  BuildingOfficeIcon,
+  PhoneIcon,
   HomeIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
+import { apiService } from '../../services/apiService';
 
 const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
   const [formData, setFormData] = useState({
@@ -35,38 +36,41 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('📤 Submitting registration...');
       console.log('📋 Registration data:', formData);
-      
+
       // Validate required fields
       if (!formData.name || !formData.mess_no || !formData.department || !formData.mobile_number) {
         throw new Error('Please fill in all required fields');
       }
-      
-      // Mock API call for now - will implement real API later
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResponse = {
-        success: true,
-        student: {
-          ...formData,
-          telegram_id: telegramUser?.id,
-          is_approved: false,
-          created_at: new Date().toISOString()
-        }
+
+      // Real API call to backend
+      const registrationData = {
+        telegram_id: telegramUser.id.toString(),
+        name: formData.name,
+        mess_no: formData.mess_no,
+        department: formData.department,
+        year_of_study: formData.year_of_study,
+        mobile_number: formData.mobile_number,
+        room_no: formData.room_no,
+        is_sahara_inmate: formData.is_sahara_inmate
       };
-      
-      console.log('✅ Registration successful:', mockResponse);
-      onRegistrationSuccess(mockResponse.student);
-      
+
+      console.log('📤 Sending registration data:', registrationData);
+
+      const response = await apiService.auth.registerStudent(registrationData);
+      console.log('✅ Registration successful:', response.data);
+
+      onRegistrationSuccess(response.data.student);
+
     } catch (error) {
       console.error('❌ Registration failed:', error);
-      setError(error.message || 'Registration failed. Please try again.');
+      setError(error.response?.data?.error || error.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
