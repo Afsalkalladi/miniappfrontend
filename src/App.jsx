@@ -10,6 +10,7 @@ import Register from './components/auth/Register';
 import PendingApproval from './components/auth/PendingApproval';
 import Navigation from './components/common/Navigation';
 import TelegramOnly from './components/common/TelegramOnly';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import MessCuts from './components/messCuts/MessCuts';
 import Attendance from './components/attendance/Attendance';
 import AdminPanel from './components/admin/AdminPanel';
@@ -110,35 +111,45 @@ function App() {
     console.log('has_admin_access:', user?.has_admin_access);
     console.log('has_scanner_access:', user?.has_scanner_access);
 
-    // Check user type and render appropriate interface
-    if (user?.is_admin || user?.has_admin_access) {
-      console.log('Rendering AdminPanel for admin user');
-      return <AdminPanel />;
-    } else if (user?.is_staff || user?.has_scanner_access) {
-      console.log('Rendering StaffPanel for staff user');
-      return <StaffPanel />;
-    } else {
-      // Student interface
-      return (
-        <Router>
-          <div className="min-h-screen bg-telegram-bg text-telegram-text">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/bills" element={<Bills />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/mess-cuts" element={<MessCuts />} />
-              <Route path="/attendance" element={<Attendance />} />
-              <Route path="/qr-code" element={<QRCodeManager />} />
-              <Route path="/notifications" element={<Notifications />} />
-            </Routes>
-            <Navigation />
-          </div>
-        </Router>
-      );
-    }
+    // All interfaces wrapped in Router for consistent navigation
+    return (
+      <Router>
+        <div className="min-h-screen bg-telegram-bg text-telegram-text">
+          {/* Check user type and render appropriate interface */}
+          {(user?.is_admin || user?.has_admin_access) ? (
+            <>
+              <AdminPanel />
+              <Navigation />
+            </>
+          ) : (user?.is_staff || user?.has_scanner_access) ? (
+            <>
+              <StaffPanel />
+              <Navigation />
+            </>
+          ) : (
+            <>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/bills" element={<Bills />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/mess-cuts" element={<MessCuts />} />
+                <Route path="/attendance" element={<Attendance />} />
+                <Route path="/qr-code" element={<QRCodeManager />} />
+                <Route path="/notifications" element={<Notifications />} />
+              </Routes>
+              <Navigation />
+            </>
+          )}
+        </div>
+      </Router>
+    );
   };
 
-  return renderAppContent();
+  return (
+    <ErrorBoundary>
+      {renderAppContent()}
+    </ErrorBoundary>
+  );
 }
 
 export default App;
