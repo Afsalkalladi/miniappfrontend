@@ -14,6 +14,7 @@ import {
   ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
+import { parseQRCode, formatQRError } from '../../utils/qrParser';
 
 const StaffQRScanner = ({ onBack }) => {
   const [scanning, setScanning] = useState(true);
@@ -33,24 +34,33 @@ const StaffQRScanner = ({ onBack }) => {
 
   const handleQRScan = async (result) => {
     if (!result || loading) return;
-    
+
     try {
       setLoading(true);
       setError(null);
       setScanning(false);
-      
+
       console.log('🔍 QR Code scanned:', result);
-      
-      // Extract mess number from QR code
-      const messNo = result.text || result;
-      
+
+      // Parse QR code using the utility function
+      const messNo = parseQRCode(result);
+      console.log('🎯 Final mess number to lookup:', messNo);
+
       // Get student information with mess cut and bill status
       const response = await apiService.staff.getStudentInfo(messNo);
       setStudentInfo(response.data);
-      
+
     } catch (error) {
       console.error('❌ Failed to get student info:', error);
-      setError(error.response?.data?.error || 'Failed to get student information');
+
+      // Check if it's a QR parsing error
+      if (error.message && error.message.includes('Could not extract mess number')) {
+        const qrError = formatQRError(result, error);
+        setError(`QR Code Format Error: ${qrError.details}\n\nOriginal QR: ${qrError.originalQR}`);
+      } else {
+        setError(error.response?.data?.error || 'Failed to get student information');
+      }
+
       setScanning(true);
     } finally {
       setLoading(false);
@@ -124,7 +134,18 @@ const StaffQRScanner = ({ onBack }) => {
         <div className="text-center max-w-md">
           <ExclamationTriangleIcon className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h3 className="text-red-400 font-medium mb-2">Scan Error</h3>
-          <p className="text-red-300 text-sm mb-4">{error}</p>
+          <div className="text-red-300 text-sm mb-4 text-left bg-red-500/20 p-3 rounded-lg">
+            <pre className="whitespace-pre-wrap text-xs">{error}</pre>
+          </div>
+          <div className="text-telegram-hint text-xs mb-4">
+            💡 Tips:
+            <ul className="text-left mt-2 space-y-1">
+              <li>• Ensure good lighting</li>
+              <li>• Hold camera steady</li>
+              <li>• Make sure QR code is clear</li>
+              <li>• Try scanning again</li>
+            </ul>
+          </div>
           <button onClick={handleScanAnother} className="btn-primary">
             Try Again
           </button>
