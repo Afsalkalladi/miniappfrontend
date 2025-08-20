@@ -9,8 +9,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
 import StudentBills from './StudentBills';
-import StudentAttendance from './StudentAttendance';
 import StudentMessCuts from './StudentMessCuts';
+import StudentProfile from './StudentProfile';
+import StudentMenu from './StudentMenu';
 
 const StudentDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
@@ -107,12 +108,16 @@ const StudentDashboard = ({ user }) => {
     return <StudentBills onBack={() => setCurrentView('dashboard')} />;
   }
 
-  if (currentView === 'attendance') {
-    return <StudentAttendance onBack={() => setCurrentView('dashboard')} />;
-  }
-
   if (currentView === 'mess-cuts') {
     return <StudentMessCuts onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'profile') {
+    return <StudentProfile onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'menu') {
+    return <StudentMenu onBack={() => setCurrentView('dashboard')} />;
   }
 
   if (loading) {
@@ -232,11 +237,11 @@ const StudentDashboard = ({ user }) => {
             </button>
 
             <button
-              onClick={() => handleQuickAction('attendance')}
+              onClick={() => handleQuickAction('menu')}
               className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
             >
               <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Attendance</span>
+              <span className="text-telegram-text text-sm font-medium">Food Menu</span>
             </button>
 
             <button
@@ -248,7 +253,7 @@ const StudentDashboard = ({ user }) => {
             </button>
 
             <button
-              onClick={() => alert('Profile management coming soon!')}
+              onClick={() => handleQuickAction('profile')}
               className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
             >
               <UserIcon className="w-8 h-8 text-blue-500 mb-2" />

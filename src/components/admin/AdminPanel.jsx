@@ -6,13 +6,18 @@ import {
   ChartBarIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  DocumentTextIcon,
+  CogIcon
 } from '@heroicons/react/24/outline';
+import AdminStudentManagement from './AdminStudentManagement';
+import AdminBillGeneration from './AdminBillGeneration';
 
 const AdminPanel = () => {
   const [stats, setStats] = useState(null);
   const [pendingStudents, setPendingStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('dashboard');
 
   useEffect(() => {
     loadAdminData();
@@ -71,27 +76,8 @@ const AdminPanel = () => {
   };
 
   // Admin action handlers
-  const handleGenerateBills = async () => {
-    try {
-      const confirmed = confirm('Generate bills for all active students for the current month?');
-      if (!confirmed) return;
-
-      await apiService.admin.generateBills({
-        month: new Date().toISOString().slice(0, 7) // YYYY-MM format
-      });
-
-      alert('Bills generated successfully for all active students!');
-      loadAdminData(); // Reload stats
-
-    } catch (error) {
-      console.error('Failed to generate bills:', error);
-
-      if (error.response?.status === 404) {
-        alert('Bill generation feature is being deployed. Please try again in a few minutes.');
-      } else {
-        alert(`Failed to generate bills: ${error.response?.data?.error || error.message}`);
-      }
-    }
+  const handleGenerateBills = () => {
+    setCurrentView('bill-generation');
   };
 
   const handleUnpaidStudents = async () => {
@@ -169,14 +155,23 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
   };
 
   const handleDeleteStudent = () => {
-    const messNo = prompt('Enter mess number of student to delete:');
-    if (messNo) {
-      const confirmed = confirm(`Are you sure you want to delete student ${messNo}? This action cannot be undone.`);
-      if (confirmed) {
-        alert(`Delete Student feature: Would delete student ${messNo}. Full interface coming soon.`);
-      }
-    }
+    setCurrentView('student-management');
   };
+
+  const handleManageStudents = () => {
+    setCurrentView('student-management');
+  };
+
+
+
+  // Render different views based on currentView
+  if (currentView === 'student-management') {
+    return <AdminStudentManagement onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'bill-generation') {
+    return <AdminBillGeneration onBack={() => setCurrentView('dashboard')} />;
+  }
 
   const handleSendNotificationAll = async () => {
     const message = prompt('Enter message to send to all students:');
@@ -420,18 +415,10 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
         {/* Bill Management */}
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Bill Management</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={handleGenerateBills} className="btn-primary text-sm py-2">
-              Generate Bills
-            </button>
-            <button onClick={handleUnpaidStudents} className="btn-secondary text-sm py-2">
-              Unpaid Students
-            </button>
-            <button onClick={handleUnpaidStudents} className="btn-secondary text-sm py-2">
-              Payment Verification
-            </button>
-            <button onClick={handleRevenueReport} className="btn-secondary text-sm py-2">
-              Bill Reports
+          <div className="grid grid-cols-1 gap-3">
+            <button onClick={handleGenerateBills} className="btn-primary text-sm py-3">
+              <DocumentTextIcon className="w-4 h-4 inline mr-2" />
+              Generate & Manage Bills
             </button>
           </div>
         </div>
@@ -439,18 +426,10 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
         {/* Student Management */}
         <div className="card">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Student Management</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={handleAllStudents} className="btn-secondary text-sm py-2">
-              All Students
-            </button>
-            <button onClick={handleAddStudent} className="btn-secondary text-sm py-2">
-              Add Student
-            </button>
-            <button onClick={handleModifyStudent} className="btn-secondary text-sm py-2">
-              Modify Student
-            </button>
-            <button onClick={handleDeleteStudent} className="btn-secondary text-sm py-2">
-              Delete Student
+          <div className="grid grid-cols-1 gap-3">
+            <button onClick={handleManageStudents} className="btn-primary text-sm py-3">
+              <CogIcon className="w-4 h-4 inline mr-2" />
+              Manage Students (Add, Edit, Delete, Approve)
             </button>
           </div>
         </div>

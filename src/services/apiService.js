@@ -93,6 +93,14 @@ export const apiService = {
     // Student Management
     getAllStudents: (params) => api.get('/students/list/', { params }),
     getStudentDetails: (messNo) => api.get(`/students/${messNo}/`),
+    deleteStudent: (studentId) => api.delete(`/students/${studentId}/`),
+    updateStudent: (studentId, data) => api.put(`/students/${studentId}/`, data),
+    addStudent: (data) => api.post('/students/', data),
+
+    // Bill Management
+    generateBills: (data) => api.post('/mess/admin/generate-bills/', data),
+    publishBills: (data) => api.post('/mess/admin/publish-bills/', data),
+    getRecentBills: (params) => api.get('/mess/admin/recent-bills/', { params }),
 
     // Reports
     getAttendanceReport: (params) => api.get('/mess/admin/reports/attendance/', { params }),
@@ -132,5 +140,20 @@ export const apiService = {
   messCuts: {
     getMyMessCuts: () => api.get('/mess/mess-cuts/my/'),
     applyMessCut: (data) => api.post('/mess/mess-cuts/', data),
+  },
+
+  // Menu endpoints for students
+  menu: {
+    getTodayMenu: () => api.get('/mess/menu/today/'),
+    getWeeklyMenu: (params) => api.get('/mess/menu/weekly/', { params }),
+    getMenuByDate: (date) => api.get(`/mess/menu/date/${date}/`),
+  },
+
+  // Student profile management
+  student: {
+    updateProfile: (data) => api.put('/students/profile/', data),
+    regenerateQR: () => api.post('/students/regenerate-qr/'),
+    getNotifications: () => api.get('/notifications/my/'),
+    markNotificationRead: (notificationId) => api.post(`/notifications/${notificationId}/read/`),
   },
 };
