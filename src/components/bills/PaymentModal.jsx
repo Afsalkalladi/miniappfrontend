@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { XMarkIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
-import { useAuthStore } from '../../stores/authStore';
 
 const PaymentModal = ({ bill, onClose, onSuccess }) => {
-  const { user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState('upi');
   const [transactionNumber, setTransactionNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,7 +10,7 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
   const [copied, setCopied] = useState(false);
 
   // Prefilled payment details
-  const messNo = user?.student?.mess_no || '';
+  const messNo = 'Loading...';
   const amount = bill?.amount || 0;
 
   const copyToClipboard = (text, type) => {

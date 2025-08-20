@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
 import {
   HomeIcon,
   CurrencyRupeeIcon,
@@ -17,12 +16,6 @@ import {
 const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-
-  // Only show navigation for students
-  if (user?.role !== 'student') {
-    return null;
-  }
 
   const tabs = [
     {

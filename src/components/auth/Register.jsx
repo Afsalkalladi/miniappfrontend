@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useAuthStore } from '../../stores/authStore';
 import { apiService } from '../../services/apiService';
 import {
   UserIcon,

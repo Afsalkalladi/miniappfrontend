@@ -1,7 +1,6 @@
 import React from 'react';
-import { useAuthStore } from '../../stores/authStore';
-import { 
-  ClockIcon, 
+import {
+  ClockIcon,
   CheckCircleIcon,
   UserIcon,
   PhoneIcon,
@@ -10,7 +9,6 @@ import {
 } from '@heroicons/react/24/outline';
 
 const PendingApproval = ({ registrationData }) => {
-  const { logout } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-telegram-bg p-4">
@@ -148,7 +146,10 @@ const PendingApproval = ({ registrationData }) => {
           </button>
           
           <button
-            onClick={logout}
+            onClick={() => {
+              localStorage.removeItem('auth_token');
+              window.location.reload();
+            }}
             className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors"
           >
             Logout
