@@ -272,14 +272,14 @@ const AdminPanel = () => {
         </div>
       )}
 
-      {/* Deployment Status Notice */}
-      <div className="mb-6 p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+      {/* Success Notice */}
+      <div className="mb-6 p-3 bg-green-500/20 border border-green-500 rounded-lg">
         <div className="flex items-center gap-2">
-          <div className="text-blue-400">🚀</div>
+          <div className="text-green-400">✅</div>
           <div>
-            <p className="text-blue-400 text-sm font-medium">New Admin Features Deploying</p>
-            <p className="text-blue-300 text-xs mt-1">
-              Some advanced features may show "being deployed" temporarily while backend updates.
+            <p className="text-green-400 text-sm font-medium">All Admin Features Active</p>
+            <p className="text-green-300 text-xs mt-1">
+              Generate bills, manage students, send notifications, and view reports are now fully functional.
             </p>
           </div>
         </div>
