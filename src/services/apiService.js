@@ -101,6 +101,10 @@ export const apiService = {
     generateBills: (data) => api.post('/mess/admin/generate-bills/', data),
     publishBills: (data) => api.post('/mess/admin/publish-bills/', data),
     getRecentBills: (params) => api.get('/mess/admin/recent-bills/', { params }),
+    getUnpaidBills: () => api.get('/mess/admin/unpaid-bills/'),
+    getPaymentVerifications: () => api.get('/mess/admin/payment-verifications/'),
+    verifyPayment: (billId, data) => api.post(`/mess/admin/verify-payment/${billId}/`, data),
+    getDashboardStats: () => api.get('/mess/admin/dashboard-stats/'),
 
     // Reports
     getAttendanceReport: (params) => api.get('/mess/admin/reports/attendance/', { params }),

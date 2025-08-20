@@ -166,13 +166,22 @@ const StudentBills = ({ onBack }) => {
               </div>
             )}
 
-            {currentBill.status === 'pending' && (
+            {(currentBill.status === 'pending' || currentBill.status === 'unpaid') && (
               <button
                 onClick={() => handlePayBill(currentBill)}
-                className="w-full btn-primary mt-4"
+                className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors mt-4 flex items-center justify-center gap-2"
               >
-                Pay Now
+                <CurrencyRupeeIcon className="w-5 h-5" />
+                Pay Now - ₹{currentBill.amount}
               </button>
+            )}
+
+            {currentBill.status === 'payment_submitted' && (
+              <div className="mt-4 p-3 bg-yellow-400/20 border border-yellow-400 rounded-lg">
+                <p className="text-yellow-400 text-sm text-center">
+                  ⏳ Payment submitted and under verification
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -215,13 +224,22 @@ const StudentBills = ({ onBack }) => {
                   )}
                 </div>
 
-                {bill.status === 'pending' && (
+                {(bill.status === 'pending' || bill.status === 'unpaid') && (
                   <button
                     onClick={() => handlePayBill(bill)}
-                    className="w-full btn-primary"
+                    className="w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
                   >
-                    Pay Now
+                    <CurrencyRupeeIcon className="w-4 h-4" />
+                    Pay Now - ₹{bill.amount}
                   </button>
+                )}
+
+                {bill.status === 'payment_submitted' && (
+                  <div className="p-2 bg-yellow-400/20 border border-yellow-400 rounded-lg">
+                    <p className="text-yellow-400 text-xs text-center">
+                      Payment under verification
+                    </p>
+                  </div>
                 )}
               </div>
             ))}
@@ -314,15 +332,19 @@ const PaymentModal = ({ bill, onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className="block text-telegram-text mb-2">Transaction Number</label>
+            <label className="block text-telegram-text mb-2">Transaction ID / Reference Number *</label>
             <input
               type="text"
               value={transactionNumber}
               onChange={(e) => setTransactionNumber(e.target.value)}
-              placeholder="Enter transaction/reference number"
-              className="w-full bg-telegram-bg border border-gray-600 rounded-lg px-4 py-3 text-telegram-text placeholder-telegram-hint"
+              placeholder="Enter UPI transaction ID, bank reference number, or receipt number"
+              className="w-full bg-telegram-bg border border-gray-600 rounded-lg px-4 py-3 text-telegram-text placeholder-telegram-hint font-mono"
               required
+              minLength={6}
             />
+            <p className="text-telegram-hint text-xs mt-1">
+              💡 Enter the transaction ID from your payment app or bank receipt
+            </p>
           </div>
 
           {error && (

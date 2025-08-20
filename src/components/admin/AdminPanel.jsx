@@ -12,6 +12,8 @@ import {
 } from '@heroicons/react/24/outline';
 import AdminStudentManagement from './AdminStudentManagement';
 import AdminBillGeneration from './AdminBillGeneration';
+import AdminPaymentVerification from './AdminPaymentVerification';
+import AdminUnpaidBills from './AdminUnpaidBills';
 
 const AdminPanel = () => {
   const [stats, setStats] = useState(null);
@@ -78,6 +80,18 @@ const AdminPanel = () => {
   // Admin action handlers
   const handleGenerateBills = () => {
     setCurrentView('bill-generation');
+  };
+
+  const handlePaymentVerification = () => {
+    setCurrentView('payment-verification');
+  };
+
+  const handleUnpaidBillsView = () => {
+    setCurrentView('unpaid-bills');
+  };
+
+  const handlePendingApprovalsClick = () => {
+    setCurrentView('student-management');
   };
 
   const handleUnpaidStudents = async () => {
@@ -171,6 +185,14 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
 
   if (currentView === 'bill-generation') {
     return <AdminBillGeneration onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'payment-verification') {
+    return <AdminPaymentVerification onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'unpaid-bills') {
+    return <AdminUnpaidBills onBack={() => setCurrentView('dashboard')} />;
   }
 
   const handleSendNotificationAll = async () => {
@@ -283,12 +305,36 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-          {/* Pending Approvals Card */}
-          <div className="card text-center">
+          {/* Pending Approvals Card - Clickable */}
+          <button
+            onClick={handlePendingApprovalsClick}
+            className="card text-center hover:border-orange-400 transition-colors cursor-pointer"
+          >
             <ClockIcon className="w-8 h-8 text-orange-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-telegram-text">{stats.students?.pending_approvals || 0}</div>
             <div className="text-telegram-hint text-sm">Pending Approval</div>
-          </div>
+          </button>
+
+          {/* Unpaid Bills Card - Clickable */}
+          <button
+            onClick={handleUnpaidBillsView}
+            className="card text-center hover:border-red-400 transition-colors cursor-pointer"
+          >
+            <XCircleIcon className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-telegram-text">{stats.bills?.unpaid_bills || 0}</div>
+            <div className="text-telegram-hint text-sm">Unpaid Bills</div>
+          </button>
+
+          {/* Payment Verification Card - Clickable */}
+          <button
+            onClick={handlePaymentVerification}
+            className="card text-center hover:border-yellow-400 transition-colors cursor-pointer"
+          >
+            <CurrencyRupeeIcon className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-telegram-text">{stats.bills?.payment_submitted || 0}</div>
+            <div className="text-telegram-hint text-sm">Payment Verification</div>
+          </button>
+
           <div className="card text-center">
             <UsersIcon className="w-8 h-8 text-telegram-accent mx-auto mb-2" />
             <div className="text-2xl font-bold text-telegram-text">{stats.students?.total || 0}</div>
@@ -298,19 +344,13 @@ ${students.length > 5 ? `\n... and ${students.length - 5} more students` : ''}`;
           <div className="card text-center">
             <CheckCircleIcon className="w-8 h-8 text-green-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-telegram-text">{stats.students?.approved || 0}</div>
-            <div className="text-telegram-hint text-sm">Approved</div>
+            <div className="text-telegram-hint text-sm">Approved Students</div>
           </div>
 
           <div className="card text-center">
-            <CurrencyRupeeIcon className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">₹{stats.bills?.total_revenue || 0}</div>
-            <div className="text-telegram-hint text-sm">Total Revenue</div>
-          </div>
-
-          <div className="card text-center">
-            <ChartBarIcon className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-telegram-text">{stats.attendance?.today_count || 0}</div>
-            <div className="text-telegram-hint text-sm">Today's Attendance</div>
+            <ChartBarIcon className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-telegram-text">{stats.mess_cuts?.tomorrow_count || 0}</div>
+            <div className="text-telegram-hint text-sm">Tomorrow's Mess Cuts</div>
           </div>
         </div>
       )}
