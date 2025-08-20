@@ -43,8 +43,15 @@ function App() {
         console.error('No Telegram user data available');
       }
     } else {
-      // Not running in Telegram - show access denied
-      console.error('Not running in Telegram WebApp');
+      // Not running in Telegram - use mock user for debugging
+      console.warn('Not running in Telegram WebApp - using mock user for debugging');
+      const mockUser = {
+        id: 5469651459,
+        first_name: 'Debug',
+        last_name: 'User',
+        username: 'debuguser'
+      };
+      initializeUser(mockUser);
     }
   }, [initializeUser]);
 
@@ -52,16 +59,17 @@ function App() {
   const isInTelegram = window.Telegram?.WebApp;
   const hasTelegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
 
-  if (!isInTelegram || !hasTelegramUser) {
-    if (isLoading) {
-      return (
-        <div className="min-h-screen bg-telegram-bg flex items-center justify-center">
-          <div className="text-telegram-text">Loading...</div>
-        </div>
-      );
-    }
-    return <TelegramOnly />;
-  }
+  // TEMPORARILY DISABLED FOR DEBUGGING
+  // if (!isInTelegram || !hasTelegramUser) {
+  //   if (isLoading) {
+  //     return (
+  //       <div className="min-h-screen bg-telegram-bg flex items-center justify-center">
+  //         <div className="text-telegram-text">Loading...</div>
+  //       </div>
+  //     );
+  //   }
+  //   return <TelegramOnly />;
+  // }
 
   if (isLoading) {
     return (
