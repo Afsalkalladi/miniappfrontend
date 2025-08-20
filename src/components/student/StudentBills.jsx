@@ -47,6 +47,39 @@ const StudentBills = ({ onBack }) => {
     setShowPaymentModal(true);
   };
 
+  const handleUPIPayment = (bill) => {
+    try {
+      // Get user's mess number for the note
+      const messNo = user?.student?.mess_no || 'MESS_PAYMENT';
+      const amount = bill.amount;
+      const billMonth = new Date(bill.month).toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+      });
+
+      // Create UPI payment URL for Google Pay
+      const upiUrl = `upi://pay?pa=your-upi-id@paytm&pn=Mess Management&am=${amount}&cu=INR&tn=Mess Bill ${billMonth} - ${messNo}`;
+
+      // Try to open UPI app (Google Pay, PhonePe, etc.)
+      if (window.Telegram?.WebApp) {
+        // In Telegram, use openLink
+        window.Telegram.WebApp.openLink(upiUrl);
+      } else {
+        // Fallback for web browsers
+        window.location.href = upiUrl;
+      }
+
+      // Show instructions to user
+      setTimeout(() => {
+        alert(`📱 UPI Payment Initiated!\n\nAmount: ₹${amount}\nFor: ${billMonth}\nMess No: ${messNo}\n\nAfter payment, please submit the transaction ID using "Other Payment Methods" button.`);
+      }, 1000);
+
+    } catch (error) {
+      console.error('UPI payment error:', error);
+      alert('Unable to open UPI app. Please use "Other Payment Methods" option.');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'paid': return 'text-green-400 bg-green-400/20';
@@ -167,13 +200,27 @@ const StudentBills = ({ onBack }) => {
             )}
 
             {(currentBill.status === 'pending' || currentBill.status === 'unpaid') && (
-              <button
-                onClick={() => handlePayBill(currentBill)}
-                className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors mt-4 flex items-center justify-center gap-2"
-              >
-                <CurrencyRupeeIcon className="w-5 h-5" />
-                Pay Now - ₹{currentBill.amount}
-              </button>
+              <div className="mt-4 space-y-3">
+                {/* UPI Payment Button */}
+                <button
+                  onClick={() => handleUPIPayment(currentBill)}
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <div className="w-5 h-5 bg-white rounded flex items-center justify-center">
+                    <span className="text-blue-500 text-xs font-bold">₹</span>
+                  </div>
+                  Pay with UPI - ₹{currentBill.amount}
+                </button>
+
+                {/* Manual Payment Button */}
+                <button
+                  onClick={() => handlePayBill(currentBill)}
+                  className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CurrencyRupeeIcon className="w-5 h-5" />
+                  Other Payment Methods
+                </button>
+              </div>
             )}
 
             {currentBill.status === 'payment_submitted' && (
@@ -225,13 +272,27 @@ const StudentBills = ({ onBack }) => {
                 </div>
 
                 {(bill.status === 'pending' || bill.status === 'unpaid') && (
-                  <button
-                    onClick={() => handlePayBill(bill)}
-                    className="w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <CurrencyRupeeIcon className="w-4 h-4" />
-                    Pay Now - ₹{bill.amount}
-                  </button>
+                  <div className="space-y-2">
+                    {/* UPI Payment Button */}
+                    <button
+                      onClick={() => handleUPIPayment(bill)}
+                      className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <div className="w-4 h-4 bg-white rounded flex items-center justify-center">
+                        <span className="text-blue-500 text-xs font-bold">₹</span>
+                      </div>
+                      UPI Pay - ₹{bill.amount}
+                    </button>
+
+                    {/* Manual Payment Button */}
+                    <button
+                      onClick={() => handlePayBill(bill)}
+                      className="w-full bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <CurrencyRupeeIcon className="w-4 h-4" />
+                      Other Methods
+                    </button>
+                  </div>
                 )}
 
                 {bill.status === 'payment_submitted' && (

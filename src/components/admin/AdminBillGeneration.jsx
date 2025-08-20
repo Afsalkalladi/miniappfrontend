@@ -49,7 +49,16 @@ const AdminBillGeneration = ({ onBack }) => {
       setError(null);
       setGenerationResult(null);
 
-      const response = await apiService.admin.generateBills(generationParams);
+      // Calculate total mess days for the month
+      const [year, month] = generationParams.month.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      const billData = {
+        ...generationParams,
+        total_mess_days: daysInMonth
+      };
+
+      const response = await apiService.admin.generateBills(billData);
       setGenerationResult(response.data);
       
       alert(`✅ Bills generated successfully!\n\nGenerated: ${response.data.generated_count} bills\nTotal Amount: ₹${response.data.total_amount}`);
