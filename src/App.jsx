@@ -1,192 +1,233 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useAuthStore } from './stores/authStore';
-import Dashboard from './components/dashboard/Dashboard';
-import Bills from './components/bills/Bills';
-import Scanner from './components/scanner/Scanner';
-import Profile from './components/profile/Profile';
+
+// Components
+import LoadingScreen from './components/common/LoadingScreen';
+import ErrorScreen from './components/common/ErrorScreen';
+import TelegramOnly from './components/common/TelegramOnly';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import PendingApproval from './components/auth/PendingApproval';
-import Navigation from './components/common/Navigation';
-import TelegramOnly from './components/common/TelegramOnly';
-import ErrorBoundary from './components/common/ErrorBoundary';
+import Dashboard from './components/dashboard/Dashboard';
+import Bills from './components/bills/Bills';
+import Profile from './components/profile/Profile';
 import MessCuts from './components/messCuts/MessCuts';
 import Attendance from './components/attendance/Attendance';
 import AdminPanel from './components/admin/AdminPanel';
 import StaffPanel from './components/staff/StaffPanel';
-import QRCodeManager from './components/student/QRCodeManager';
-import Notifications from './components/student/Notifications';
-import DebugInfo from './components/debug/DebugInfo';
+import Navigation from './components/common/Navigation';
+
+// Services
+import { apiService } from './services/apiService';
 
 function App() {
-  const { user, initializeUser, isLoading, needsRegistration, telegramUser } = useAuthStore();
-  const [registrationData, setRegistrationData] = React.useState(null);
-  const [showPendingApproval, setShowPendingApproval] = React.useState(false);
+  const [appState, setAppState] = useState({
+    isLoading: true,
+    error: null,
+    isInTelegram: false,
+    telegramUser: null,
+    user: null,
+    needsRegistration: false,
+    registrationData: null,
+    showPendingApproval: false
+  });
 
-  // Debug logging
-  console.log('🔍 App state:', { user, isLoading, needsRegistration, telegramUser });
-
+  // Initialize app
   useEffect(() => {
-    // Check if running in Telegram WebApp
-    if (window.Telegram?.WebApp) {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      console.log('🚀 Initializing app...');
+
+      // Check if running in Telegram
+      const isInTelegram = !!(window.Telegram?.WebApp);
+      const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+
+      console.log('📱 Telegram check:', { isInTelegram, telegramUser });
+
+      if (!isInTelegram) {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          isInTelegram: false,
+          error: 'This app only works in Telegram'
+        }));
+        return;
+      }
+
+      if (!telegramUser?.id) {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          isInTelegram: true,
+          error: 'No Telegram user data found'
+        }));
+        return;
+      }
+
+      // Initialize Telegram WebApp
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
 
-      // Set theme
-      tg.setHeaderColor('#17212b');
-      tg.setBackgroundColor('#17212b');
-
-      // Initialize user from Telegram data
-      const telegramUser = tg.initDataUnsafe?.user;
-      if (telegramUser && telegramUser.id) {
-        initializeUser(telegramUser);
-      } else {
-        // No Telegram user data available - use mock user for debugging
-        console.error('No Telegram user data available - using mock user for debugging');
-        const mockUser = {
-          id: 5469651459,
-          first_name: 'Debug',
-          last_name: 'User',
-          username: 'debuguser'
-        };
-        initializeUser(mockUser);
+      // Set theme colors (with version check)
+      try {
+        tg.setHeaderColor('#17212b');
+        tg.setBackgroundColor('#17212b');
+      } catch (e) {
+        console.warn('Theme colors not supported in this Telegram version');
       }
-    } else {
-      // Not running in Telegram - use mock user for debugging
-      console.warn('Not running in Telegram WebApp - using mock user for debugging');
-      const mockUser = {
-        id: 5469651459,
-        first_name: 'Debug',
-        last_name: 'User',
-        username: 'debuguser'
-      };
-      initializeUser(mockUser);
+
+      // Try to authenticate user
+      await authenticateUser(telegramUser);
+
+    } catch (error) {
+      console.error('❌ App initialization error:', error);
+      setAppState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: `Initialization failed: ${error.message}`
+      }));
     }
-  }, [initializeUser]);
-
-  // Check if running in Telegram with valid user data
-  const isInTelegram = window.Telegram?.WebApp;
-  const hasTelegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-
-  // TEMPORARILY DISABLED FOR DEBUGGING
-  // if (!isInTelegram || !hasTelegramUser) {
-  //   if (isLoading) {
-  //     return (
-  //       <div className="min-h-screen bg-telegram-bg flex items-center justify-center">
-  //         <div className="text-telegram-text">Loading...</div>
-  //       </div>
-  //     );
-  //   }
-  //   return <TelegramOnly />;
-  // }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-telegram-bg flex items-center justify-center">
-        <div className="text-telegram-text">Loading...</div>
-      </div>
-    );
-  }
-
-  // Handle registration flow
-  const handleRegistrationSuccess = (data) => {
-    setRegistrationData(data);
-    setShowPendingApproval(true);
   };
 
-  // Show pending approval screen
-  if (showPendingApproval && registrationData) {
-    return <PendingApproval registrationData={registrationData} />;
+  const authenticateUser = async (telegramUser) => {
+    try {
+      console.log('🔐 Authenticating user:', telegramUser);
+
+      const response = await apiService.auth.loginWithTelegram({
+        telegram_id: telegramUser.id.toString(),
+        username: telegramUser.username || '',
+        first_name: telegramUser.first_name || '',
+        last_name: telegramUser.last_name || ''
+      });
+
+      console.log('✅ Auth response:', response.data);
+
+      if (response.data.needs_registration) {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          isInTelegram: true,
+          telegramUser,
+          needsRegistration: true
+        }));
+      } else {
+        // Store auth token
+        if (response.data.token) {
+          localStorage.setItem('auth_token', response.data.token);
+        }
+
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          isInTelegram: true,
+          telegramUser,
+          user: response.data.user,
+          needsRegistration: false
+        }));
+      }
+    } catch (error) {
+      console.error('❌ Authentication error:', error);
+      setAppState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: `Authentication failed: ${error.response?.data?.error || error.message}`
+      }));
+    }
+  };
+
+  const handleRegistrationSuccess = (data) => {
+    console.log('✅ Registration successful:', data);
+    setAppState(prev => ({
+      ...prev,
+      registrationData: data,
+      showPendingApproval: true,
+      needsRegistration: false
+    }));
+  };
+
+  const handleRetry = () => {
+    setAppState(prev => ({
+      ...prev,
+      isLoading: true,
+      error: null
+    }));
+    initializeApp();
+  };
+
+  // Debug logging
+  console.log('🔍 App state:', appState);
+
+  // Render loading screen
+  if (appState.isLoading) {
+    return <LoadingScreen />;
   }
 
-  // Show registration form for new users
-  if (needsRegistration) {
-    // Use telegramUser from store, or create a fallback
-    const userForRegistration = telegramUser || {
-      id: 5469651459,
-      first_name: 'Debug',
-      last_name: 'User',
-      username: 'debuguser'
-    };
+  // Render error screen
+  if (appState.error) {
+    if (!appState.isInTelegram) {
+      return <TelegramOnly />;
+    }
+    return <ErrorScreen error={appState.error} onRetry={handleRetry} />;
+  }
 
+  // Render pending approval screen
+  if (appState.showPendingApproval && appState.registrationData) {
+    return <PendingApproval registrationData={appState.registrationData} />;
+  }
+
+  // Render registration form
+  if (appState.needsRegistration && appState.telegramUser) {
     return (
       <Register
-        telegramUser={userForRegistration}
+        telegramUser={appState.telegramUser}
         onSuccess={handleRegistrationSuccess}
       />
     );
   }
 
-  // Show login screen if no user
-  if (!user) {
-    return <Login />;
+  // Render login screen if no user
+  if (!appState.user) {
+    return <Login onRetry={handleRetry} />;
   }
 
-  // Check if user is pending approval
-  if (user && user.student && !user.student.is_approved) {
-    return <PendingApproval registrationData={user.student} />;
-  }
-
-  // User type based routing
-  const renderAppContent = () => {
-    // Debug user object
-    console.log('User object:', user);
-    console.log('is_admin:', user?.is_admin);
-    console.log('is_staff:', user?.is_staff);
-    console.log('has_admin_access:', user?.has_admin_access);
-    console.log('has_scanner_access:', user?.has_scanner_access);
-
-    // All interfaces wrapped in Router for consistent navigation
-    return (
-      <Router>
-        <div className="min-h-screen bg-telegram-bg text-telegram-text">
-          {/* Check user type and render appropriate interface */}
-          {(user?.is_admin || user?.has_admin_access) ? (
-            <>
-              <AdminPanel />
-              <Navigation />
-            </>
-          ) : (user?.is_staff || user?.has_scanner_access) ? (
-            <>
-              <StaffPanel />
-              <Navigation />
-            </>
-          ) : (
-            <>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/bills" element={<Bills />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/mess-cuts" element={<MessCuts />} />
-                <Route path="/attendance" element={<Attendance />} />
-                <Route path="/qr-code" element={<QRCodeManager />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/debug" element={<DebugInfo />} />
-              </Routes>
-              <Navigation />
-            </>
-          )}
-        </div>
-      </Router>
-    );
-  };
-
-  // Fallback for debugging - if nothing else works, show debug info
-  if (window.location.pathname === '/debug') {
-    return (
-      <ErrorBoundary>
-        <DebugInfo />
-      </ErrorBoundary>
-    );
-  }
-
+  // Render main app based on user type
   return (
-    <ErrorBoundary>
-      {renderAppContent()}
-    </ErrorBoundary>
+    <Router>
+      <div className="min-h-screen bg-telegram-bg text-telegram-text">
+        {renderMainApp()}
+        <Navigation />
+      </div>
+    </Router>
   );
+
+  function renderMainApp() {
+    const user = appState.user;
+
+    // Admin interface
+    if (user.is_admin || user.has_admin_access) {
+      return <AdminPanel />;
+    }
+
+    // Staff interface
+    if (user.is_staff || user.has_scanner_access) {
+      return <StaffPanel />;
+    }
+
+    // Student interface
+    return (
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/bills" element={<Bills />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/mess-cuts" element={<MessCuts />} />
+        <Route path="/attendance" element={<Attendance />} />
+      </Routes>
+    );
+  }
 }
 
 export default App;
