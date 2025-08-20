@@ -17,6 +17,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import StaffPanel from './components/staff/StaffPanel';
 import QRCodeManager from './components/student/QRCodeManager';
 import Notifications from './components/student/Notifications';
+import DebugInfo from './components/debug/DebugInfo';
 
 function App() {
   const { user, initializeUser, isLoading, needsRegistration, telegramUser } = useAuthStore();
@@ -154,6 +155,7 @@ function App() {
                 <Route path="/attendance" element={<Attendance />} />
                 <Route path="/qr-code" element={<QRCodeManager />} />
                 <Route path="/notifications" element={<Notifications />} />
+                <Route path="/debug" element={<DebugInfo />} />
               </Routes>
               <Navigation />
             </>
@@ -162,6 +164,15 @@ function App() {
       </Router>
     );
   };
+
+  // Fallback for debugging - if nothing else works, show debug info
+  if (window.location.pathname === '/debug') {
+    return (
+      <ErrorBoundary>
+        <DebugInfo />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <ErrorBoundary>
