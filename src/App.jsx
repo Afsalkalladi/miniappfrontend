@@ -103,10 +103,17 @@ function App() {
 
   // User type based routing
   const renderAppContent = () => {
+    // Debug user object
+    console.log('User object:', user);
+    console.log('is_admin:', user.is_admin);
+    console.log('is_staff:', user.is_staff);
+
     // Check user type and render appropriate interface
     if (user.is_admin) {
+      console.log('Rendering AdminPanel');
       return <AdminPanel />;
     } else if (user.is_staff) {
+      console.log('Rendering StaffPanel');
       return <StaffPanel />;
     } else {
       // Student interface

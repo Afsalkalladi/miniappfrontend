@@ -17,7 +17,10 @@ const Register = ({ telegramUser, onSuccess }) => {
     mobile_number: '',
     room_no: '',
     is_sahara_inmate: false,
+    has_claim: false,
   });
+  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,6 +43,31 @@ const Register = ({ telegramUser, onSuccess }) => {
     { value: 'Other', label: 'Other' },
   ];
 
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('Profile picture must be less than 5MB');
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file');
+        return;
+      }
+
+      setProfilePicture(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfilePicturePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      setError('');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -52,15 +80,26 @@ const Register = ({ telegramUser, onSuccess }) => {
       setLoading(true);
       setError('');
 
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append('telegram_id', telegramUser.id.toString());
+      submitData.append('username', telegramUser.username || '');
+      submitData.append('first_name', telegramUser.first_name || '');
+      submitData.append('last_name', telegramUser.last_name || '');
+      submitData.append('name', formData.name);
+      submitData.append('department', formData.department);
+      submitData.append('year_of_study', formData.year_of_study);
+      submitData.append('mobile_number', formData.mobile_number.replace(/\D/g, ''));
+      submitData.append('room_no', formData.room_no);
+      submitData.append('is_sahara_inmate', formData.is_sahara_inmate);
+      submitData.append('has_claim', formData.has_claim);
+
+      if (profilePicture) {
+        submitData.append('profile_picture', profilePicture);
+      }
+
       // Register new student
-      const response = await apiService.auth.registerStudent({
-        telegram_id: telegramUser.id.toString(),
-        username: telegramUser.username,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        ...formData,
-        mobile_number: formData.mobile_number.replace(/\D/g, ''), // Remove non-digits
-      });
+      const response = await apiService.auth.registerStudent(submitData);
 
       // Haptic feedback if available
       if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -190,6 +229,54 @@ const Register = ({ telegramUser, onSuccess }) => {
               className="input"
               placeholder="Enter room number (if applicable)"
             />
+          </div>
+
+          {/* Profile Picture */}
+          <div>
+            <label className="block text-telegram-text mb-2">
+              <UserIcon className="w-4 h-4 inline mr-2" />
+              Profile Picture
+            </label>
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                className="block w-full text-sm text-telegram-text
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-telegram-accent file:text-white
+                  hover:file:bg-telegram-accent/80
+                  file:cursor-pointer cursor-pointer"
+              />
+              {profilePicturePreview && (
+                <div className="flex justify-center">
+                  <img
+                    src={profilePicturePreview}
+                    alt="Profile preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-telegram-accent"
+                  />
+                </div>
+              )}
+              <p className="text-telegram-hint text-xs">
+                Optional. Max 5MB. JPG, PNG, or GIF format.
+              </p>
+            </div>
+          </div>
+
+          {/* Has Claim */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="has_claim"
+              checked={formData.has_claim}
+              onChange={(e) => handleInputChange('has_claim', e.target.checked)}
+              className="w-4 h-4 text-telegram-accent bg-telegram-secondary border-gray-600 rounded focus:ring-telegram-accent"
+            />
+            <label htmlFor="has_claim" className="text-telegram-text">
+              I have a claim or issue to report
+            </label>
           </div>
 
           {/* Sahara Inmate */}
