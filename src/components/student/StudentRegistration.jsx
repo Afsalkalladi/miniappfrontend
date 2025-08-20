@@ -11,7 +11,6 @@ import { apiService } from '../../services/apiService';
 const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
   const [formData, setFormData] = useState({
     name: `${telegramUser?.first_name || ''} ${telegramUser?.last_name || ''}`.trim(),
-    mess_no: '',
     department: '',
     year_of_study: '',
     mobile_number: '',
@@ -45,7 +44,7 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
       console.log('📋 Registration data:', formData);
 
       // Validate required fields
-      if (!formData.name || !formData.mess_no || !formData.department || !formData.mobile_number) {
+      if (!formData.name || !formData.department || !formData.mobile_number) {
         throw new Error('Please fill in all required fields');
       }
 
@@ -53,7 +52,6 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
       const registrationData = {
         telegram_id: telegramUser.id.toString(),
         name: formData.name,
-        mess_no: formData.mess_no,
         department: formData.department,
         year_of_study: formData.year_of_study,
         mobile_number: formData.mobile_number,
@@ -127,19 +125,13 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
             />
           </div>
 
-          {/* Mess Number */}
-          <div>
-            <label className="block text-telegram-text mb-2">
-              Mess Number *
-            </label>
-            <input
-              type="text"
-              value={formData.mess_no}
-              onChange={(e) => handleInputChange('mess_no', e.target.value)}
-              className="w-full bg-telegram-secondary border border-gray-600 rounded-lg px-4 py-3 text-telegram-text placeholder-telegram-hint focus:border-telegram-accent focus:outline-none"
-              placeholder="e.g., 2021001"
-              required
-            />
+          {/* Auto-generated Mess Number Info */}
+          <div className="bg-blue-500/20 border border-blue-500 rounded-lg p-4">
+            <h4 className="text-blue-400 font-medium mb-2">📋 Mess Number</h4>
+            <p className="text-blue-300 text-sm">
+              Your mess number will be automatically generated after registration.
+              You'll receive it once your registration is approved.
+            </p>
           </div>
 
           {/* Department */}
@@ -257,7 +249,7 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
           <div className="text-xs text-gray-400 space-y-1">
             <div>Component: StudentRegistration</div>
             <div>Telegram ID: {telegramUser?.id || 'Missing'}</div>
-            <div>Form Valid: {formData.name && formData.mess_no && formData.department && formData.mobile_number ? 'Yes' : 'No'}</div>
+            <div>Form Valid: {formData.name && formData.department && formData.mobile_number ? 'Yes' : 'No'}</div>
             <div>Loading: {loading ? 'Yes' : 'No'}</div>
           </div>
         </div>
