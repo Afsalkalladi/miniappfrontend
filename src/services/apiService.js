@@ -60,9 +60,10 @@ export const apiService = {
   },
 
   admin: {
-    getDashboardStats: () => api.get('/mess/admin/dashboard/'),
-    getPendingStudents: () => api.get('/students/pending/'),
-    approveStudent: (studentId, data) => api.post(`/students/${studentId}/approve/`, data),
+    getDashboardStats: () => api.get('/auth/admin/dashboard-stats/'),
+    getPendingStudents: () => api.get('/auth/admin/pending-students/'),
+    approveStudent: (studentId) => api.post(`/auth/admin/approve-student/${studentId}/`),
+    rejectStudent: (studentId) => api.post(`/auth/admin/reject-student/${studentId}/`),
   },
 
   // Superuser endpoints removed - using Django admin for whitelist management
