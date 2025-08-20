@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
+import RegistrationFlow from '../common/RegistrationFlow';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -132,6 +133,11 @@ const Dashboard = () => {
             </span>
           )}
         </div>
+
+        {/* Registration Flow for Approved Users */}
+        {student?.is_approved && (
+          <RegistrationFlow currentStep="approved" />
+        )}
 
         {/* Current Bill Card */}
         {currentBill && (

@@ -7,6 +7,7 @@ import {
   BuildingOfficeIcon,
   HomeIcon
 } from '@heroicons/react/24/outline';
+import RegistrationFlow from '../common/RegistrationFlow';
 
 const PendingApproval = ({ registrationData }) => {
 
@@ -24,6 +25,9 @@ const PendingApproval = ({ registrationData }) => {
             Your registration is pending admin approval
           </p>
         </div>
+
+        {/* Registration Flow Indicator */}
+        <RegistrationFlow currentStep="pending" />
 
         {/* Registration Summary */}
         <div className="card mb-6">

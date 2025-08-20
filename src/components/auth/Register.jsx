@@ -8,6 +8,7 @@ import {
   AcademicCapIcon
 } from '@heroicons/react/24/outline';
 import BackButton from '../common/BackButton';
+import RegistrationFlow from '../common/RegistrationFlow';
 
 const Register = ({ telegramUser, onSuccess }) => {
   // Safety check for telegramUser
@@ -149,6 +150,9 @@ const Register = ({ telegramUser, onSuccess }) => {
             Please provide your details to access the mess management system
           </p>
         </div>
+
+        {/* Registration Flow Indicator */}
+        <RegistrationFlow currentStep="register" />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
