@@ -48,17 +48,24 @@ const StaffQRScanner = ({ onBack }) => {
 
       // Get student information with mess cut and bill status
       const response = await apiService.staff.getStudentInfo(messNo);
+      console.log('📋 Student info response:', response.data);
       setStudentInfo(response.data);
 
     } catch (error) {
       console.error('❌ Failed to get student info:', error);
+      console.error('❌ Error details:', error.response?.data);
 
       // Check if it's a QR parsing error
       if (error.message && error.message.includes('Could not extract mess number')) {
         const qrError = formatQRError(result, error);
         setError(`QR Code Format Error: ${qrError.details}\n\nOriginal QR: ${qrError.originalQR}`);
       } else {
-        setError(error.response?.data?.error || 'Failed to get student information');
+        // More detailed error message
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to get student information';
+        const statusCode = error.response?.status;
+        const fullError = statusCode ? `${statusCode}: ${errorMessage}` : errorMessage;
+
+        setError(`Student Lookup Failed: ${fullError}\n\nMess Number: ${messNo || 'Unknown'}`);
       }
 
       setScanning(true);
@@ -204,7 +211,9 @@ const StaffQRScanner = ({ onBack }) => {
 
   if (studentInfo) {
     const currentMeal = getCurrentMeal();
-    const isOnMessCut = studentInfo.mess_cuts?.some(cut => {
+
+    // Safely check for mess cuts
+    const isOnMessCut = Array.isArray(studentInfo.mess_cuts) && studentInfo.mess_cuts.some(cut => {
       const today = new Date().toISOString().split('T')[0];
       return cut.from_date <= today && cut.to_date >= today && cut.status === 'approved';
     });
@@ -252,10 +261,10 @@ const StaffQRScanner = ({ onBack }) => {
             </div>
             
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-telegram-text">{studentInfo.name}</h3>
+              <h3 className="text-xl font-bold text-telegram-text">{studentInfo.name || 'Unknown Student'}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="px-2 py-1 bg-telegram-accent/20 text-telegram-accent rounded text-sm font-mono">
-                  {studentInfo.mess_no}
+                  {studentInfo.mess_no || 'N/A'}
                 </span>
                 {studentInfo.is_approved ? (
                   <span className="px-2 py-1 bg-green-400/20 text-green-400 rounded text-sm">
@@ -276,23 +285,23 @@ const StaffQRScanner = ({ onBack }) => {
               <div className="flex items-center gap-2">
                 <BuildingOfficeIcon className="w-4 h-4 text-telegram-hint" />
                 <span className="text-telegram-hint">Department:</span>
-                <span className="text-telegram-text">{studentInfo.department}</span>
+                <span className="text-telegram-text">{studentInfo.department || 'N/A'}</span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <HomeIcon className="w-4 h-4 text-telegram-hint" />
                 <span className="text-telegram-hint">Room:</span>
                 <span className="text-telegram-text">{studentInfo.room_no || 'N/A'}</span>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <PhoneIcon className="w-4 h-4 text-telegram-hint" />
                 <span className="text-telegram-hint">Mobile:</span>
                 <span className="text-telegram-text">{studentInfo.mobile_number || 'N/A'}</span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <CalendarDaysIcon className="w-4 h-4 text-telegram-hint" />
                 <span className="text-telegram-hint">Year:</span>
@@ -312,19 +321,21 @@ const StaffQRScanner = ({ onBack }) => {
             <p className="text-red-300 text-sm mb-3">
               This student is currently on mess cut and should not be allowed entry.
             </p>
-            {studentInfo.mess_cuts?.filter(cut => {
-              const today = new Date().toISOString().split('T')[0];
-              return cut.from_date <= today && cut.to_date >= today && cut.status === 'approved';
-            }).map((cut, index) => (
-              <div key={index} className="bg-red-400/20 rounded p-2 text-sm">
-                <div className="text-red-300">
-                  <strong>Period:</strong> {formatDate(cut.from_date)} - {formatDate(cut.to_date)}
+            {Array.isArray(studentInfo.mess_cuts) && studentInfo.mess_cuts
+              .filter(cut => {
+                const today = new Date().toISOString().split('T')[0];
+                return cut.from_date <= today && cut.to_date >= today && cut.status === 'approved';
+              })
+              .map((cut, index) => (
+                <div key={index} className="bg-red-400/20 rounded p-2 text-sm">
+                  <div className="text-red-300">
+                    <strong>Period:</strong> {cut.from_date ? formatDate(cut.from_date) : 'Unknown'} - {cut.to_date ? formatDate(cut.to_date) : 'Unknown'}
+                  </div>
+                  <div className="text-red-300">
+                    <strong>Reason:</strong> {cut.reason || 'No reason provided'}
+                  </div>
                 </div>
-                <div className="text-red-300">
-                  <strong>Reason:</strong> {cut.reason}
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         ) : (
           <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6">
@@ -345,13 +356,13 @@ const StaffQRScanner = ({ onBack }) => {
             Payment Status
           </h4>
           
-          {studentInfo.bills && studentInfo.bills.length > 0 ? (
+          {Array.isArray(studentInfo.bills) && studentInfo.bills.length > 0 ? (
             <div className="space-y-2">
               {studentInfo.bills.slice(0, 3).map((bill, index) => (
                 <div key={index} className="flex items-center justify-between p-2 bg-telegram-bg rounded">
                   <div>
                     <span className="text-telegram-text text-sm">
-                      {formatDate(bill.month)} - ₹{bill.amount}
+                      {bill.month ? formatDate(bill.month) : 'Unknown'} - ₹{bill.amount || 0}
                     </span>
                   </div>
                   <div>
@@ -371,8 +382,8 @@ const StaffQRScanner = ({ onBack }) => {
                   </div>
                 </div>
               ))}
-              
-              {studentInfo.unpaid_bills_count > 0 && (
+
+              {(studentInfo.unpaid_bills_count || 0) > 0 && (
                 <div className="mt-2 p-2 bg-red-500/20 border border-red-500 rounded">
                   <p className="text-red-400 text-sm">
                     ⚠️ {studentInfo.unpaid_bills_count} unpaid bill{studentInfo.unpaid_bills_count !== 1 ? 's' : ''}
