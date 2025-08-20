@@ -1,22 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Components
 import LoadingScreen from './components/common/LoadingScreen';
 import ErrorScreen from './components/common/ErrorScreen';
 import TelegramOnly from './components/common/TelegramOnly';
-import Login from './components/auth/Login';
-import Register from './components/auth/Register';
-import PendingApproval from './components/auth/PendingApproval';
-import Dashboard from './components/dashboard/Dashboard';
-import Bills from './components/bills/Bills';
-import Profile from './components/profile/Profile';
-import MessCuts from './components/messCuts/MessCuts';
-import Attendance from './components/attendance/Attendance';
 import AdminPanel from './components/admin/AdminPanel';
 import StaffPanel from './components/staff/StaffPanel';
-import Navigation from './components/common/Navigation';
-import ApiTest from './components/debug/ApiTest';
+import StudentApp from './components/student/StudentApp';
 
 // Services
 import { apiService } from './services/apiService';
@@ -28,9 +18,7 @@ function App() {
     isInTelegram: false,
     telegramUser: null,
     user: null,
-    needsRegistration: false,
-    registrationData: null,
-    showPendingApproval: false
+    isStudentFlow: false
   });
 
   // Initialize app
@@ -107,15 +95,22 @@ function App() {
 
       console.log('✅ Auth response:', response.data);
 
-      if (response.data.needs_registration) {
+      // Handle both admin/staff and student users
+      if (response.data.needs_registration || response.data.user?.role === 'student') {
+        // Student flow - let StudentApp handle the complete flow
+        console.log('👨‍🎓 Student user detected, delegating to StudentApp');
         setAppState(prev => ({
           ...prev,
           isLoading: false,
           isInTelegram: true,
           telegramUser,
-          needsRegistration: true
+          user: null, // Let StudentApp handle user state
+          isStudentFlow: true
         }));
       } else {
+        // Admin/Staff flow
+        console.log('👨‍💼 Admin/Staff user detected');
+
         // Store auth token
         if (response.data.token) {
           localStorage.setItem('auth_token', response.data.token);
@@ -127,7 +122,7 @@ function App() {
           isInTelegram: true,
           telegramUser,
           user: response.data.user,
-          needsRegistration: false
+          isStudentFlow: false
         }));
       }
     } catch (error) {
@@ -138,16 +133,6 @@ function App() {
         error: `Authentication failed: ${error.response?.data?.error || error.message}`
       }));
     }
-  };
-
-  const handleRegistrationSuccess = (data) => {
-    console.log('✅ Registration successful:', data);
-    setAppState(prev => ({
-      ...prev,
-      registrationData: data,
-      showPendingApproval: true,
-      needsRegistration: false
-    }));
   };
 
   const handleRetry = () => {
@@ -175,34 +160,28 @@ function App() {
     return <ErrorScreen error={appState.error} onRetry={handleRetry} />;
   }
 
-  // Render pending approval screen
-  if (appState.showPendingApproval && appState.registrationData) {
-    return <PendingApproval registrationData={appState.registrationData} />;
+  // Handle student flow
+  if (appState.isStudentFlow && appState.telegramUser) {
+    return <StudentApp telegramUser={appState.telegramUser} />;
   }
 
-  // Render registration form
-  if (appState.needsRegistration && appState.telegramUser) {
+  // Render main app if admin/staff user exists
+  if (!appState.user) {
     return (
-      <Register
-        telegramUser={appState.telegramUser}
-        onSuccess={handleRegistrationSuccess}
-      />
+      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-telegram-text mb-4">Access Required</h1>
+          <p className="text-telegram-hint">Please contact admin for access</p>
+        </div>
+      </div>
     );
   }
 
-  // Render login screen if no user
-  if (!appState.user) {
-    return <Login onRetry={handleRetry} />;
-  }
-
-  // Render main app based on user type
+  // Render admin/staff app
   return (
-    <Router>
-      <div className="min-h-screen bg-telegram-bg text-telegram-text">
-        {renderMainApp()}
-        <Navigation />
-      </div>
-    </Router>
+    <div className="min-h-screen bg-telegram-bg text-telegram-text">
+      {renderMainApp()}
+    </div>
   );
 
   function renderMainApp() {
@@ -218,16 +197,14 @@ function App() {
       return <StaffPanel />;
     }
 
-    // Student interface
+    // Default: No access
     return (
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/bills" element={<Bills />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/mess-cuts" element={<MessCuts />} />
-        <Route path="/attendance" element={<Attendance />} />
-        <Route path="/api-test" element={<ApiTest />} />
-      </Routes>
+      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-telegram-text mb-4">No Access</h1>
+          <p className="text-telegram-hint">Student features coming soon</p>
+        </div>
+      </div>
     );
   }
 }

@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { apiService } from '../../services/apiService';
-import {
-  UserIcon,
-  CurrencyRupeeIcon,
-  QrCodeIcon,
+import { 
+  UserIcon, 
+  CurrencyRupeeIcon, 
   CalendarDaysIcon,
   ChartBarIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import RegistrationFlow from '../common/RegistrationFlow';
 
-const Dashboard = () => {
-  const navigate = useNavigate();
+const StudentDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  const [currentBill, setCurrentBill] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    profile: null,
+    currentBill: null,
+    recentActivity: []
+  });
+
+  console.log('🏠 StudentDashboard component loaded');
+  console.log('👤 User data:', user);
 
   useEffect(() => {
-    console.log('🔄 Dashboard mounting...');
     loadDashboardData();
   }, []);
 
@@ -28,46 +28,48 @@ const Dashboard = () => {
     try {
       setLoading(true);
       setError(null);
+      
       console.log('📤 Loading dashboard data...');
-
-      // Check auth token
-      const token = localStorage.getItem('auth_token');
-      console.log('🔑 Auth token:', token ? 'Present' : 'Missing');
-
-      if (!token) {
-        setError('No authentication token found');
-        setLoading(false);
-        return;
-      }
-
-      // Load profile data
-      try {
-        console.log('📤 Fetching profile...');
-        const profileResponse = await apiService.auth.getProfile();
-        console.log('📥 Profile data:', profileResponse.data);
-        setUserProfile(profileResponse.data);
-      } catch (profileError) {
-        console.error('❌ Profile error:', profileError);
-        setError(`Profile error: ${profileError.response?.data?.error || profileError.message}`);
-      }
-
-      // Load current bill (optional)
-      try {
-        console.log('📤 Fetching current bill...');
-        const billResponse = await apiService.bills.getCurrentBill();
-        console.log('📥 Bill data:', billResponse.data);
-        setCurrentBill(billResponse.data);
-      } catch (billError) {
-        console.log('⚠️ No current bill:', billError.response?.data);
-        // Bill is optional, don't set error
-      }
-
+      
+      // Mock API calls for now - will implement real API later
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const mockData = {
+        profile: {
+          name: user?.student?.name || 'Student Name',
+          mess_no: user?.student?.mess_no || '2021001',
+          department: user?.student?.department || 'Computer Science',
+          is_approved: user?.student?.is_approved || true
+        },
+        currentBill: {
+          id: 1,
+          amount: '2500.00',
+          month: '2025-08-01',
+          status: 'pending',
+          due_date: '2025-08-15'
+        },
+        recentActivity: [
+          { type: 'attendance', message: 'Lunch attendance marked', time: '2 hours ago' },
+          { type: 'bill', message: 'August bill generated', time: '1 day ago' },
+          { type: 'mess_cut', message: 'Mess cut approved for Aug 25-27', time: '3 days ago' }
+        ]
+      };
+      
+      console.log('📥 Mock dashboard data:', mockData);
+      setDashboardData(mockData);
+      
     } catch (error) {
-      console.error('❌ Dashboard error:', error);
-      setError(`Failed to load dashboard: ${error.message}`);
+      console.error('❌ Failed to load dashboard:', error);
+      setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    console.log('🚪 Logging out...');
+    localStorage.removeItem('auth_token');
+    window.location.reload();
   };
 
   if (loading) {
@@ -101,43 +103,33 @@ const Dashboard = () => {
     );
   }
 
-  const student = userProfile?.student;
-  const user = userProfile?.user;
+  const { profile, currentBill, recentActivity } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-telegram-bg pb-20">
-      <div className="p-4 space-y-6">
-
+    <div className="min-h-screen bg-telegram-bg p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        
         {/* Welcome Header */}
         <div className="text-center py-6">
           <div className="w-20 h-20 bg-telegram-accent rounded-full flex items-center justify-center mx-auto mb-4">
             <UserIcon className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-telegram-text mb-2">
-            Welcome, {student?.name || user?.first_name || 'Student'}!
+            Welcome, {profile?.name}!
           </h1>
-          {student?.mess_no && (
-            <p className="text-telegram-hint">Mess No: {student.mess_no}</p>
-          )}
-          {student?.is_approved ? (
+          <p className="text-telegram-hint">
+            Mess No: {profile?.mess_no}
+          </p>
+          {profile?.is_approved ? (
             <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
               ✅ Approved
             </span>
-          ) : student ? (
+          ) : (
             <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
               ⏳ Pending Approval
             </span>
-          ) : (
-            <span className="inline-block px-3 py-1 bg-blue-400/20 text-blue-400 rounded-full text-sm mt-2">
-              👋 Welcome
-            </span>
           )}
         </div>
-
-        {/* Registration Flow for Approved Users */}
-        {student?.is_approved && (
-          <RegistrationFlow currentStep="approved" />
-        )}
 
         {/* Current Bill Card */}
         {currentBill && (
@@ -153,40 +145,34 @@ const Dashboard = () => {
               <div className="flex justify-between">
                 <span className="text-telegram-hint">Month</span>
                 <span className="text-telegram-text">
-                  {new Date(currentBill.month).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long'
+                  {new Date(currentBill.month).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long' 
                   })}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-telegram-hint">Status</span>
                 <span className={`px-2 py-1 rounded text-xs ${
-                  currentBill.status === 'paid'
-                    ? 'bg-green-400/20 text-green-400'
+                  currentBill.status === 'paid' 
+                    ? 'bg-green-400/20 text-green-400' 
                     : 'bg-yellow-400/20 text-yellow-400'
                 }`}>
                   {currentBill.status.toUpperCase()}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-telegram-hint">Due Date</span>
+                <span className="text-telegram-text">
+                  {new Date(currentBill.due_date).toLocaleDateString()}
+                </span>
+              </div>
             </div>
             {currentBill.status === 'pending' && (
-              <button
-                onClick={() => navigate('/bills')}
-                className="w-full mt-4 bg-telegram-accent text-white py-2 rounded-lg hover:bg-telegram-accent/80"
-              >
+              <button className="w-full mt-4 bg-telegram-accent text-white py-2 rounded-lg hover:bg-telegram-accent/80">
                 Pay Now
               </button>
             )}
-          </div>
-        )}
-
-        {/* No Bill Message */}
-        {!currentBill && (
-          <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 text-center">
-            <CurrencyRupeeIcon className="w-12 h-12 text-telegram-hint mx-auto mb-3" />
-            <h3 className="text-telegram-text font-medium mb-2">No Current Bill</h3>
-            <p className="text-telegram-hint text-sm">Your bill will appear here once generated</p>
           </div>
         )}
 
@@ -194,37 +180,41 @@ const Dashboard = () => {
         <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
           <h3 className="text-lg font-semibold text-telegram-text mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => navigate('/bills')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
+            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
               <CurrencyRupeeIcon className="w-8 h-8 text-green-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">My Bills</span>
             </button>
-
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
+            
+            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
               <UserIcon className="w-8 h-8 text-blue-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">Profile</span>
             </button>
-
-            <button
-              onClick={() => navigate('/mess-cuts')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
+            
+            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
               <CalendarDaysIcon className="w-8 h-8 text-orange-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">Mess Cuts</span>
             </button>
-
-            <button
-              onClick={() => navigate('/attendance')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
+            
+            <button className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors">
               <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
               <span className="text-telegram-text text-sm font-medium">Attendance</span>
             </button>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
+          <h3 className="text-lg font-semibold text-telegram-text mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            {recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-telegram-accent rounded-full"></div>
+                <div className="flex-1">
+                  <p className="text-telegram-text text-sm">{activity.message}</p>
+                  <p className="text-telegram-hint text-xs">{activity.time}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -234,19 +224,28 @@ const Dashboard = () => {
             <CheckCircleIcon className="w-6 h-6 text-green-400" />
             <div>
               <p className="text-telegram-text font-medium">Dashboard Active</p>
-              <p className="text-telegram-hint text-sm">All features are working properly</p>
+              <p className="text-telegram-hint text-sm">All features working properly</p>
             </div>
           </div>
         </div>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600"
+        >
+          Logout
+        </button>
 
         {/* Debug Info */}
         <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
           <h4 className="text-telegram-text font-medium mb-2">Debug Info</h4>
           <div className="text-xs text-gray-400 space-y-1">
-            <div>Auth Token: {localStorage.getItem('auth_token') ? '✅ Present' : '❌ Missing'}</div>
-            <div>User Profile: {userProfile ? '✅ Loaded' : '❌ Missing'}</div>
-            <div>Student Data: {student ? '✅ Present' : '❌ Missing'}</div>
-            <div>Current Bill: {currentBill ? '✅ Present' : '⚠️ None'}</div>
+            <div>Component: StudentDashboard</div>
+            <div>User: {user ? 'Present' : 'Missing'}</div>
+            <div>Profile: {profile ? 'Loaded' : 'Missing'}</div>
+            <div>Current Bill: {currentBill ? 'Present' : 'None'}</div>
+            <div>Activities: {recentActivity.length}</div>
           </div>
         </div>
 
@@ -255,4 +254,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default StudentDashboard;
