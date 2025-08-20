@@ -16,6 +16,7 @@ import Attendance from './components/attendance/Attendance';
 import AdminPanel from './components/admin/AdminPanel';
 import StaffPanel from './components/staff/StaffPanel';
 import Navigation from './components/common/Navigation';
+import ApiTest from './components/debug/ApiTest';
 
 // Services
 import { apiService } from './services/apiService';
@@ -225,6 +226,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/mess-cuts" element={<MessCuts />} />
         <Route path="/attendance" element={<Attendance />} />
+        <Route path="/api-test" element={<ApiTest />} />
       </Routes>
     );
   }
