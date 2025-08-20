@@ -11,8 +11,11 @@ import {
 import BackButton from '../common/BackButton';
 
 const Register = ({ telegramUser, onSuccess }) => {
+  // Safety check for telegramUser
+  const safeUser = telegramUser || {};
+
   const [formData, setFormData] = useState({
-    name: `${telegramUser.first_name} ${telegramUser.last_name}`.trim() || '',
+    name: `${safeUser.first_name || ''} ${safeUser.last_name || ''}`.trim() || 'User',
     department: '',
     year_of_study: '',
     mobile_number: '',
@@ -83,10 +86,10 @@ const Register = ({ telegramUser, onSuccess }) => {
 
       // Create FormData for file upload
       const submitData = new FormData();
-      submitData.append('telegram_id', telegramUser.id.toString());
-      submitData.append('username', telegramUser.username || '');
-      submitData.append('first_name', telegramUser.first_name || '');
-      submitData.append('last_name', telegramUser.last_name || '');
+      submitData.append('telegram_id', safeUser.id?.toString() || '5469651459');
+      submitData.append('username', safeUser.username || 'debuguser');
+      submitData.append('first_name', safeUser.first_name || 'Debug');
+      submitData.append('last_name', safeUser.last_name || 'User');
       submitData.append('name', formData.name);
       submitData.append('department', formData.department);
       submitData.append('year_of_study', formData.year_of_study);

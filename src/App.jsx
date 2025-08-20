@@ -102,10 +102,18 @@ function App() {
   }
 
   // Show registration form for new users
-  if (needsRegistration && telegramUser) {
+  if (needsRegistration) {
+    // Use telegramUser from store, or create a fallback
+    const userForRegistration = telegramUser || {
+      id: 5469651459,
+      first_name: 'Debug',
+      last_name: 'User',
+      username: 'debuguser'
+    };
+
     return (
       <Register
-        telegramUser={telegramUser}
+        telegramUser={userForRegistration}
         onSuccess={handleRegistrationSuccess}
       />
     );

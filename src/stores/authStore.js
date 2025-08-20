@@ -31,7 +31,8 @@ export const useAuthStore = create((set, get) => ({
         set({
           needsRegistration: true,
           isLoading: false,
-          error: null
+          error: null,
+          telegramUser: telegramUser  // Keep telegram user data for registration form
         });
       } else {
         // User exists (student/admin/staff) - proceed with login
