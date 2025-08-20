@@ -10,18 +10,24 @@ export const useAuthStore = create((set, get) => ({
 
   initializeUser: async (telegramUser) => {
     try {
+      console.log('🔄 Initializing user with data:', telegramUser);
       set({ isLoading: true, error: null, telegramUser });
 
       // Try to login with Telegram data
-      const response = await apiService.auth.loginWithTelegram({
+      const loginData = {
         telegram_id: telegramUser.id.toString(),
         username: telegramUser.username,
         first_name: telegramUser.first_name,
         last_name: telegramUser.last_name,
-      });
+      };
+
+      console.log('📤 Sending login request with:', loginData);
+      const response = await apiService.auth.loginWithTelegram(loginData);
+      console.log('📥 Login response:', response.data);
 
       if (response.data.needs_registration) {
         // New student user - show registration form
+        console.log('📝 User needs registration');
         set({
           needsRegistration: true,
           isLoading: false,
@@ -29,6 +35,8 @@ export const useAuthStore = create((set, get) => ({
         });
       } else {
         // User exists (student/admin/staff) - proceed with login
+        console.log('✅ User authenticated:', response.data.user);
+
         // Store auth token
         if (response.data.token) {
           localStorage.setItem('auth_token', response.data.token);
@@ -41,7 +49,8 @@ export const useAuthStore = create((set, get) => ({
         });
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('❌ Auth error:', error);
+      console.error('❌ Error details:', error.response?.data);
       set({
         error: error.response?.data?.error || 'Authentication failed',
         isLoading: false

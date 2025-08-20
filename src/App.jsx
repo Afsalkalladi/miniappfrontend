@@ -23,6 +23,9 @@ function App() {
   const [registrationData, setRegistrationData] = React.useState(null);
   const [showPendingApproval, setShowPendingApproval] = React.useState(false);
 
+  // Debug logging
+  console.log('🔍 App state:', { user, isLoading, needsRegistration, telegramUser });
+
   useEffect(() => {
     // Check if running in Telegram WebApp
     if (window.Telegram?.WebApp) {
@@ -39,8 +42,15 @@ function App() {
       if (telegramUser && telegramUser.id) {
         initializeUser(telegramUser);
       } else {
-        // No Telegram user data available - show login screen
-        console.error('No Telegram user data available');
+        // No Telegram user data available - use mock user for debugging
+        console.error('No Telegram user data available - using mock user for debugging');
+        const mockUser = {
+          id: 5469651459,
+          first_name: 'Debug',
+          last_name: 'User',
+          username: 'debuguser'
+        };
+        initializeUser(mockUser);
       }
     } else {
       // Not running in Telegram - use mock user for debugging
