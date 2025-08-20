@@ -54,7 +54,7 @@ export const apiService = {
   },
 
   attendance: {
-    markAttendance: (data) => api.post('/mess/attendance/mark/', data),
+    markAttendance: (data) => api.post('/staff/mark-attendance/', data),
     getMyAttendance: () => api.get('/mess/attendance/my/'),
   },
 
@@ -159,5 +159,12 @@ export const apiService = {
     regenerateQR: () => api.post('/students/regenerate-qr/'),
     getNotifications: () => api.get('/notifications/my/'),
     markNotificationRead: (notificationId) => api.post(`/notifications/${notificationId}/read/`),
+  },
+
+  // Staff endpoints
+  staff: {
+    getStudentInfo: (messNo) => api.get(`/staff/student-info/${messNo}/`),
+    getStats: () => api.get('/staff/stats/'),
+    getRecentScans: () => api.get('/staff/recent-scans/'),
   },
 };
