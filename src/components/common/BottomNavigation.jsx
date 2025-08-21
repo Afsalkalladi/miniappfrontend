@@ -6,7 +6,7 @@ import {
   BellIcon, 
   UserIcon,
   ScissorsIcon,
-  QrCodeScannerIcon
+  QrCodeIcon
 } from '@heroicons/react/24/outline';
 import { 
   HomeIcon as HomeIconSolid, 
@@ -15,7 +15,7 @@ import {
   BellIcon as BellIconSolid, 
   UserIcon as UserIconSolid,
   ScissorsIcon as ScissorsIconSolid,
-  QrCodeScannerIcon as QrCodeScannerIconSolid
+  QrCodeIcon as QrCodeIconSolid
 } from '@heroicons/react/24/solid';
 
 const BottomNavigation = ({ activeTab, onTabChange, userType }) => {
