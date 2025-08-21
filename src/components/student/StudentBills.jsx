@@ -4,14 +4,13 @@ import {
   CalendarIcon, 
   CheckCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
-  ArrowLeftIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
+import LoadingSpinner from '../common/LoadingSpinner';
 
-const StudentBills = ({ onBack }) => {
+const StudentBills = ({ user, showToast }) => {
   const [bills, setBills] = useState([]);
-  const [currentBill, setCurrentBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -26,17 +25,12 @@ const StudentBills = ({ onBack }) => {
       setLoading(true);
       setError(null);
 
-      // Load current bill and all bills
-      const [currentResponse, allResponse] = await Promise.all([
-        apiService.bills.getCurrentBill().catch(() => ({ data: null })),
-        apiService.bills.getAllBills().catch(() => ({ data: { bills: [] } }))
-      ]);
-
-      setCurrentBill(currentResponse.data);
-      setBills(allResponse.data.bills || []);
+      const response = await apiService.students.getBills();
+      setBills(response.data.bills || []);
     } catch (error) {
       console.error('Failed to load bills:', error);
       setError('Failed to load bills');
+      showToast('Failed to load bills', 'error');
     } finally {
       setLoading(false);
     }
@@ -50,7 +44,7 @@ const StudentBills = ({ onBack }) => {
   const handleUPIPayment = (bill) => {
     try {
       // Get user's mess number for the note
-      const messNo = user?.student?.mess_no || 'MESS_PAYMENT';
+      const messNo = user?.mess_no || 'MESS_PAYMENT';
       const amount = bill.amount;
       const billMonth = new Date(bill.month).toLocaleDateString('en-US', {
         month: 'long',
@@ -71,12 +65,12 @@ const StudentBills = ({ onBack }) => {
 
       // Show instructions to user
       setTimeout(() => {
-        alert(`📱 UPI Payment Initiated!\n\nAmount: ₹${amount}\nFor: ${billMonth}\nMess No: ${messNo}\n\nAfter payment, please submit the transaction ID using "Other Payment Methods" button.`);
+        showToast(`📱 UPI Payment Initiated!\n\nAmount: ₹${amount}\nFor: ${billMonth}\nMess No: ${messNo}\n\nAfter payment, please submit the transaction ID using "Other Payment Methods" button.`, 'info');
       }, 1000);
 
     } catch (error) {
       console.error('UPI payment error:', error);
-      alert('Unable to open UPI app. Please use "Other Payment Methods" option.');
+      showToast('Unable to open UPI app. Please use "Other Payment Methods" option.', 'error');
     }
   };
 
@@ -99,45 +93,38 @@ const StudentBills = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-telegram-bg p-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-telegram-accent"></div>
-        </div>
+      <div className="p-4">
+        <LoadingSpinner text="Loading bills..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-telegram-bg p-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <ExclamationTriangleIcon className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-red-400 font-medium mb-2">Error Loading Bills</h3>
-            <p className="text-red-300 text-sm mb-4">{error}</p>
-            <button onClick={loadBills} className="btn-primary">
-              Retry
-            </button>
-          </div>
+      <div className="p-4">
+        <div className="text-center py-8">
+          <ExclamationTriangleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-red-600 font-medium mb-2">Error Loading Bills</h3>
+          <p className="text-red-500 text-sm mb-4">{error}</p>
+          <button 
+            onClick={loadBills} 
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
+  const currentBill = bills.find(bill => bill.status === 'pending' || bill.status === 'unpaid');
+
   return (
-    <div className="min-h-screen bg-telegram-bg p-4">
+    <div className="p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={onBack}
-          className="p-2 bg-telegram-secondary rounded-lg border border-gray-600"
-        >
-          <ArrowLeftIcon className="w-5 h-5 text-telegram-text" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-telegram-text">My Bills</h1>
-          <p className="text-telegram-hint">View and manage your mess bills</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">My Bills</h1>
+        <p className="text-gray-600">View and manage your mess bills</p>
       </div>
 
       {/* Current Bill */}

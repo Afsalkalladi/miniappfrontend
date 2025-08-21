@@ -1,30 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import {
-  UserIcon,
-  CurrencyRupeeIcon,
-  CalendarDaysIcon,
-  ChartBarIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
-import StudentBills from './StudentBills';
-import StudentMessCuts from './StudentMessCuts';
-import StudentProfile from './StudentProfile';
-import StudentMenu from './StudentMenu';
+import StatsCard from '../common/StatsCard';
+import LoadingSpinner from '../common/LoadingSpinner';
+import {
+  UserCircleIcon,
+  QrCodeIcon,
+  CurrencyRupeeIcon,
+  ScissorsIcon,
+  ClockIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/outline';
 
-const StudentDashboard = ({ user }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentView, setCurrentView] = useState('dashboard');
+const StudentDashboard = ({ user, showToast }) => {
   const [dashboardData, setDashboardData] = useState({
     profile: null,
-    currentBill: null,
-    recentActivity: []
+    stats: null,
+    loading: true,
+    error: null
   });
-
-  console.log('🏠 StudentDashboard component loaded');
-  console.log('👤 User data:', user);
 
   useEffect(() => {
     loadDashboardData();
@@ -32,283 +25,117 @@ const StudentDashboard = ({ user }) => {
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setDashboardData(prev => ({ ...prev, loading: true }));
+      
+      const [profileResponse, statsResponse] = await Promise.all([
+        apiService.students.getProfile(),
+        apiService.students.getDashboardStats()
+      ]);
 
-      console.log('📤 Loading dashboard data...');
-
-      // Load user profile
-      let profileData = null;
-      try {
-        const profileResponse = await apiService.auth.getProfile();
-        console.log('📥 Profile data:', profileResponse.data);
-        profileData = {
-          name: profileResponse.data.student?.name || profileResponse.data.user?.first_name || 'Student',
-          mess_no: profileResponse.data.student?.mess_no || 'N/A',
-          department: profileResponse.data.student?.department || 'N/A',
-          is_approved: profileResponse.data.student?.is_approved || false
-        };
-      } catch (error) {
-        console.error('⚠️ Failed to load profile:', error);
-        profileData = {
-          name: user?.student?.name || user?.user?.first_name || 'Student',
-          mess_no: user?.student?.mess_no || 'N/A',
-          department: user?.student?.department || 'N/A',
-          is_approved: user?.student?.is_approved || false
-        };
-      }
-
-      // Load current bill
-      let currentBillData = null;
-      try {
-        const billResponse = await apiService.bills.getCurrentBill();
-        console.log('📥 Current bill:', billResponse.data);
-        currentBillData = billResponse.data;
-      } catch (error) {
-        console.log('⚠️ No current bill found:', error.response?.data);
-        // No current bill is okay
-      }
-
-      // Mock recent activity for now
-      const recentActivity = [
-        { type: 'login', message: 'Logged into dashboard', time: 'Just now' },
-        { type: 'system', message: 'Profile data loaded', time: '1 minute ago' }
-      ];
-
-      const dashboardData = {
-        profile: profileData,
-        currentBill: currentBillData,
-        recentActivity
-      };
-
-      console.log('📥 Dashboard data loaded:', dashboardData);
-      setDashboardData(dashboardData);
-
+      setDashboardData({
+        profile: profileResponse.data.student,
+        stats: statsResponse.data,
+        loading: false,
+        error: null
+      });
     } catch (error) {
-      console.error('❌ Failed to load dashboard:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
+      console.error('Failed to load dashboard data:', error);
+      setDashboardData(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Failed to load dashboard data'
+      }));
+      showToast('Failed to load dashboard data', 'error');
     }
   };
 
-  const handleLogout = () => {
-    console.log('🚪 Logging out...');
-    localStorage.removeItem('auth_token');
-    window.location.reload();
-  };
-
-  const handleQuickAction = (action) => {
-    console.log(`🎯 Quick action: ${action}`);
-    setCurrentView(action);
-  };
-
-  // Render different views based on currentView
-  if (currentView === 'bills') {
-    return <StudentBills onBack={() => setCurrentView('dashboard')} />;
-  }
-
-  if (currentView === 'mess-cuts') {
-    return <StudentMessCuts onBack={() => setCurrentView('dashboard')} />;
-  }
-
-  if (currentView === 'profile') {
-    return <StudentProfile onBack={() => setCurrentView('dashboard')} />;
-  }
-
-  if (currentView === 'menu') {
-    return <StudentMenu onBack={() => setCurrentView('dashboard')} />;
-  }
-
-  if (loading) {
+  if (dashboardData.loading) {
     return (
-      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-telegram-accent mx-auto mb-4"></div>
-          <p className="text-telegram-text">Loading dashboard...</p>
-        </div>
+      <div className="p-4">
+        <LoadingSpinner text="Loading dashboard..." />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          <div className="bg-red-500/20 border border-red-500 rounded-lg p-6 text-center">
-            <ExclamationTriangleIcon className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h3 className="text-red-400 font-medium mb-2">Dashboard Error</h3>
-            <p className="text-red-300 text-sm mb-4">{error}</p>
-            <button
-              onClick={loadDashboardData}
-              className="bg-telegram-accent text-white px-4 py-2 rounded-lg hover:bg-telegram-accent/80"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const { profile, currentBill, recentActivity } = dashboardData;
+  const { profile, stats } = dashboardData;
 
   return (
-    <div className="min-h-screen bg-telegram-bg p-4">
-      <div className="max-w-md mx-auto space-y-6">
-        
-        {/* Welcome Header */}
-        <div className="text-center py-6">
-          <div className="w-20 h-20 bg-telegram-accent rounded-full flex items-center justify-center mx-auto mb-4">
-            <UserIcon className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-telegram-text mb-2">
-            Welcome, {profile?.name}!
-          </h1>
-          <p className="text-telegram-hint">
-            Mess No: {profile?.mess_no}
-          </p>
-          {profile?.is_approved ? (
-            <span className="inline-block px-3 py-1 bg-green-400/20 text-green-400 rounded-full text-sm mt-2">
-              ✅ Approved
-            </span>
-          ) : (
-            <span className="inline-block px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm mt-2">
-              ⏳ Pending Approval
-            </span>
-          )}
-        </div>
-
-        {/* Current Bill Card */}
-        {currentBill && (
-          <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-telegram-text">Current Bill</h3>
-              <div className="flex items-center gap-2 text-telegram-accent">
-                <CurrencyRupeeIcon className="w-5 h-5" />
-                <span className="text-xl font-bold">₹{currentBill.amount}</span>
+    <div className="p-4 space-y-6">
+      {/* Profile Section */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden">
+            {profile?.profile_photo ? (
+              <img 
+                src={profile.profile_photo} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <UserCircleIcon className="w-10 h-10 text-gray-400" />
               </div>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-telegram-hint">Month</span>
-                <span className="text-telegram-text">
-                  {new Date(currentBill.month).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long' 
-                  })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-telegram-hint">Status</span>
-                <span className={`px-2 py-1 rounded text-xs ${
-                  currentBill.status === 'paid' 
-                    ? 'bg-green-400/20 text-green-400' 
-                    : 'bg-yellow-400/20 text-yellow-400'
-                }`}>
-                  {currentBill.status.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-telegram-hint">Due Date</span>
-                <span className="text-telegram-text">
-                  {new Date(currentBill.due_date).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-            {currentBill.status === 'pending' && (
-              <button className="w-full mt-4 bg-telegram-accent text-white py-2 rounded-lg hover:bg-telegram-accent/80">
-                Pay Now
-              </button>
             )}
           </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-gray-900">{profile?.name}</h2>
+            <p className="text-gray-600">Mess No: {profile?.mess_no}</p>
+          </div>
+        </div>
+
+        {/* QR Code Display */}
+        {profile?.qr_code && (
+          <div className="bg-gray-50 rounded-lg p-4 text-center">
+            <img 
+              src={profile.qr_code} 
+              alt="QR Code" 
+              className="w-32 h-32 mx-auto mb-2"
+            />
+            <p className="text-sm text-gray-600">Show this QR code for mess entry</p>
+          </div>
         )}
+      </div>
 
-        {/* Quick Actions */}
-        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
-          <h3 className="text-lg font-semibold text-telegram-text mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => handleQuickAction('bills')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
-              <CurrencyRupeeIcon className="w-8 h-8 text-green-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">My Bills</span>
-            </button>
+      {/* Stats Section */}
+      <div className="grid grid-cols-2 gap-4">
+        <StatsCard
+          title="Mess Cuts Taken"
+          value={stats?.mess_cuts_taken || 0}
+          icon={ScissorsIcon}
+          color="orange"
+        />
+        <StatsCard
+          title="Pending Bill"
+          value={`₹${stats?.pending_bill_amount || 0}`}
+          icon={CurrencyRupeeIcon}
+          color="red"
+        />
+        <StatsCard
+          title="Monthly Attendance"
+          value={stats?.attendance_this_month || 0}
+          icon={ClockIcon}
+          color="blue"
+        />
+        <StatsCard
+          title="Today's Menu"
+          value="Available"
+          subtitle={stats?.todays_menu || "Rice, Dal, Sabji"}
+          icon={DocumentTextIcon}
+          color="green"
+        />
+      </div>
 
-            <button
-              onClick={() => handleQuickAction('menu')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
-              <ChartBarIcon className="w-8 h-8 text-purple-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Food Menu</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickAction('mess-cuts')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
-              <CalendarDaysIcon className="w-8 h-8 text-orange-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Mess Cuts</span>
-            </button>
-
-            <button
-              onClick={() => handleQuickAction('profile')}
-              className="flex flex-col items-center p-4 bg-telegram-bg rounded-lg border border-gray-600 hover:border-telegram-accent transition-colors"
-            >
-              <UserIcon className="w-8 h-8 text-blue-500 mb-2" />
-              <span className="text-telegram-text text-sm font-medium">Profile</span>
-            </button>
-          </div>
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button className="bg-blue-50 text-blue-700 p-3 rounded-lg font-medium hover:bg-blue-100 transition-colors">
+            Apply Mess Cut
+          </button>
+          <button className="bg-green-50 text-green-700 p-3 rounded-lg font-medium hover:bg-green-100 transition-colors">
+            Pay Bills
+          </button>
         </div>
-
-        {/* Recent Activity */}
-        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600">
-          <h3 className="text-lg font-semibold text-telegram-text mb-4">Recent Activity</h3>
-          <div className="space-y-3">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-telegram-accent rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-telegram-text text-sm">{activity.message}</p>
-                  <p className="text-telegram-hint text-xs">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Status Info */}
-        <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
-          <div className="flex items-center gap-3">
-            <CheckCircleIcon className="w-6 h-6 text-green-400" />
-            <div>
-              <p className="text-telegram-text font-medium">Dashboard Active</p>
-              <p className="text-telegram-hint text-sm">All features working properly</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600"
-        >
-          Logout
-        </button>
-
-        {/* Debug Info */}
-        <div className="bg-gray-800 rounded-lg p-4 border border-gray-600">
-          <h4 className="text-telegram-text font-medium mb-2">Debug Info</h4>
-          <div className="text-xs text-gray-400 space-y-1">
-            <div>Component: StudentDashboard</div>
-            <div>User: {user ? 'Present' : 'Missing'}</div>
-            <div>Profile: {profile ? 'Loaded' : 'Missing'}</div>
-            <div>Current Bill: {currentBill ? 'Present' : 'None'}</div>
-            <div>Activities: {recentActivity.length}</div>
-          </div>
-        </div>
-
       </div>
     </div>
   );

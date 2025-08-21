@@ -2,19 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { apiService } from '../../services/apiService';
 import LoadingScreen from '../common/LoadingScreen';
 import ErrorScreen from '../common/ErrorScreen';
-import StudentLogin from './StudentLogin';
+import BottomNavigation from '../common/BottomNavigation';
+import { useToast } from '../common/Toast';
 import StudentRegistration from './StudentRegistration';
 import StudentPendingApproval from './StudentPendingApproval';
 import StudentDashboard from './StudentDashboard';
+import StudentMessCuts from './StudentMessCuts';
+import StudentBills from './StudentBills';
+import StudentProfile from './StudentProfile';
 
-const StudentApp = ({ telegramUser }) => {
+const StudentApp = ({ telegramUser, user, registrationStatus, studentData }) => {
   const [appState, setAppState] = useState({
-    isLoading: true,
+    isLoading: false,
     error: null,
-    currentScreen: 'loading', // loading, login, registration, pending, dashboard
-    user: null,
-    registrationData: null
+    currentScreen: 'loading',
+    user: user,
+    activeTab: 'dashboard'
   });
+
+  const { showToast, ToastContainer } = useToast();
 
   console.log('🎓 StudentApp component loaded');
   console.log('👤 Telegram user:', telegramUser);
@@ -25,40 +31,57 @@ const StudentApp = ({ telegramUser }) => {
 
   const initializeStudentApp = async () => {
     try {
-      setAppState(prev => ({ ...prev, isLoading: true, error: null }));
-      
       console.log('🔄 Initializing student app...');
+      console.log('📊 Registration status:', registrationStatus);
       
-      // Check if user has existing auth token
-      const existingToken = localStorage.getItem('auth_token');
-      if (existingToken) {
-        console.log('🔑 Found existing auth token, checking validity...');
+      // Determine current screen based on registration status
+      if (registrationStatus === 'needs_registration') {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          currentScreen: 'registration'
+        }));
+      } else if (registrationStatus === 'pending_approval') {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          currentScreen: 'pending',
+          registrationData: studentData
+        }));
+      } else if (registrationStatus === 'approved' && user) {
+        setAppState(prev => ({
+          ...prev,
+          isLoading: false,
+          currentScreen: 'dashboard',
+          user: user
+        }));
+      } else {
+        // Check registration status from API
+        const response = await apiService.students.getRegistrationStatus();
+        const status = response.data;
         
-        try {
-          // Try to get user profile with existing token
-          const profileResponse = await apiService.auth.getProfile();
-          console.log('✅ Existing token valid, user profile:', profileResponse.data);
-          
+        if (!status.is_registered) {
+          setAppState(prev => ({
+            ...prev,
+            isLoading: false,
+            currentScreen: 'registration'
+          }));
+        } else if (!status.is_approved) {
+          setAppState(prev => ({
+            ...prev,
+            isLoading: false,
+            currentScreen: 'pending',
+            registrationData: status.student
+          }));
+        } else {
           setAppState(prev => ({
             ...prev,
             isLoading: false,
             currentScreen: 'dashboard',
-            user: profileResponse.data
+            user: status.student
           }));
-          return;
-        } catch (error) {
-          console.log('❌ Existing token invalid, removing...');
-          localStorage.removeItem('auth_token');
         }
       }
-      
-      // No valid token, start with login
-      console.log('🔐 No valid token, showing login screen');
-      setAppState(prev => ({
-        ...prev,
-        isLoading: false,
-        currentScreen: 'login'
-      }));
       
     } catch (error) {
       console.error('❌ Failed to initialize student app:', error);
@@ -70,38 +93,6 @@ const StudentApp = ({ telegramUser }) => {
     }
   };
 
-  const handleLoginSuccess = async (loginData) => {
-    try {
-      console.log('✅ Login successful:', loginData);
-      
-      // Store auth token
-      if (loginData.token) {
-        localStorage.setItem('auth_token', loginData.token);
-      }
-      
-      setAppState(prev => ({
-        ...prev,
-        currentScreen: 'dashboard',
-        user: loginData.user
-      }));
-      
-    } catch (error) {
-      console.error('❌ Login success handler failed:', error);
-      setAppState(prev => ({
-        ...prev,
-        error: 'Login processing failed. Please try again.'
-      }));
-    }
-  };
-
-  const handleNeedsRegistration = () => {
-    console.log('📝 User needs registration');
-    setAppState(prev => ({
-      ...prev,
-      currentScreen: 'registration'
-    }));
-  };
-
   const handleRegistrationSuccess = (registrationData) => {
     console.log('✅ Registration successful:', registrationData);
     setAppState(prev => ({
@@ -109,6 +100,22 @@ const StudentApp = ({ telegramUser }) => {
       currentScreen: 'pending',
       registrationData
     }));
+    showToast('Registration submitted successfully!', 'success');
+  };
+
+  const renderContent = () => {
+    switch (appState.activeTab) {
+      case 'dashboard':
+        return <StudentDashboard user={appState.user} showToast={showToast} />;
+      case 'mess-cuts':
+        return <StudentMessCuts user={appState.user} showToast={showToast} />;
+      case 'bills':
+        return <StudentBills user={appState.user} showToast={showToast} />;
+      case 'profile':
+        return <StudentProfile user={appState.user} telegramUser={telegramUser} showToast={showToast} />;
+      default:
+        return <StudentDashboard user={appState.user} showToast={showToast} />;
+    }
   };
 
   const handleRetry = () => {
@@ -128,20 +135,12 @@ const StudentApp = ({ telegramUser }) => {
 
   // Render appropriate screen based on current state
   switch (appState.currentScreen) {
-    case 'login':
-      return (
-        <StudentLogin
-          telegramUser={telegramUser}
-          onLoginSuccess={handleLoginSuccess}
-          onNeedsRegistration={handleNeedsRegistration}
-        />
-      );
-
     case 'registration':
       return (
         <StudentRegistration
           telegramUser={telegramUser}
           onRegistrationSuccess={handleRegistrationSuccess}
+          showToast={showToast}
         />
       );
 
@@ -149,25 +148,32 @@ const StudentApp = ({ telegramUser }) => {
       return (
         <StudentPendingApproval
           registrationData={appState.registrationData}
+          showToast={showToast}
         />
       );
 
     case 'dashboard':
       return (
-        <StudentDashboard
-          user={appState.user}
-        />
+        <div className="min-h-screen bg-gray-50 pb-20">
+          {renderContent()}
+          <BottomNavigation 
+            activeTab={appState.activeTab} 
+            onTabChange={(tab) => setAppState(prev => ({ ...prev, activeTab: tab }))} 
+            userType="student" 
+          />
+          <ToastContainer />
+        </div>
       );
 
     default:
       return (
-        <div className="min-h-screen bg-telegram-bg flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-telegram-text mb-4">Unknown State</h1>
-            <p className="text-telegram-hint mb-4">Current screen: {appState.currentScreen}</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Unknown State</h1>
+            <p className="text-gray-600 mb-4">Current screen: {appState.currentScreen}</p>
             <button
               onClick={handleRetry}
-              className="bg-telegram-accent text-white px-4 py-2 rounded-lg"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg"
             >
               Restart App
             </button>
