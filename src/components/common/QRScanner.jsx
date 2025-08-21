@@ -1,85 +1,191 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { QrScanner } from '@yudiel/react-qr-scanner';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { apiService } from '../../services/apiService';
+import { CheckCircleIcon, XCircleIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 
-const QRScannerComponent = ({ onScan, onClose, isScanning = false }) => {
-  const [error, setError] = useState(null);
-  const scannerRef = useRef(null);
+const Scanner = () => {
+  const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [mealType, setMealType] = useState('lunch');
 
-  const handleScan = (result) => {
-    if (result && result.text) {
-      onScan(result.text);
+  const handleScan = async (result) => {
+    if (!result || !result[0]?.rawValue) return;
+
+    try {
+      setScanning(false);
+      
+      // Parse QR code data
+      let qrData;
+      try {
+        qrData = JSON.parse(result[0].rawValue);
+      } catch (parseError) {
+        // If not JSON, assume it's just the mess number
+        qrData = { mess_no: result[0].rawValue };
+      }
+      
+      const response = await apiService.scanner.scanQR({
+        mess_no: qrData.mess_no,
+        meal_type: mealType,
+        date: new Date().toISOString().split('T')[0],
+      });
+
+      setResult({
+        success: true,
+        student: response.data.student,
+        attendance: response.data.attendance,
+        message: response.data.message || 'Attendance marked successfully!'
+      });
+
+      // Haptic feedback if available
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      }
+      
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error.response?.data?.error || 'Failed to mark attendance'
+      });
+      
+      // Haptic feedback if available
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+      }
     }
   };
 
   const handleError = (error) => {
-    console.error('QR Scanner Error:', error);
-    setError('Camera access denied or not available');
+    console.error('QR Scanner error:', error);
+    setResult({
+      success: false,
+      message: 'Camera access denied or not available'
+    });
+  };
+
+  const startScanning = () => {
+    setScanning(true);
+    setResult(null);
+  };
+
+  const stopScanning = () => {
+    setScanning(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 m-4 max-w-sm w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Scan QR Code</h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
-            disabled={isScanning}
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
+    <div className="p-4 pb-20">
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold text-telegram-text mb-2">
+          QR Scanner
+        </h1>
+        <p className="text-telegram-hint">
+          Scan student QR codes to mark attendance
+        </p>
+      </div>
 
-        {error ? (
-          <div className="text-center py-8">
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => {
-                setError(null);
-                // Retry camera access
-              }}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+      {/* Meal Type Selection */}
+      <div className="mb-6">
+        <label className="block text-telegram-text mb-2">Select Meal:</label>
+        <select
+          value={mealType}
+          onChange={(e) => setMealType(e.target.value)}
+          className="input"
+          disabled={scanning}
+        >
+          <option value="breakfast">Breakfast</option>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+        </select>
+      </div>
+
+      {/* Scanner */}
+      {scanning ? (
+        <div className="relative mb-6">
+          <div className="rounded-lg overflow-hidden">
             <QrScanner
-              ref={scannerRef}
               onDecode={handleScan}
               onError={handleError}
               constraints={{
-                facingMode: 'environment',
-                aspectRatio: 1
+                facingMode: 'environment'
               }}
               containerStyle={{
                 width: '100%',
-                height: '100%'
-              }}
-              videoStyle={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover'
+                height: '300px'
               }}
             />
           </div>
-        )}
-
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            Position the QR code within the frame
-          </p>
-          {isScanning && (
-            <p className="text-sm text-blue-600 mt-2">
-              Processing...
-            </p>
-          )}
+          <button
+            onClick={stopScanning}
+            className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
+          >
+            Stop
+          </button>
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="flex items-center justify-center h-full">
+              <div className="w-48 h-48 border-2 border-telegram-accent rounded-lg"></div>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <button
+          onClick={startScanning}
+          className="w-full btn-primary mb-6 flex items-center justify-center gap-2"
+        >
+          <QrCodeIcon className="w-6 h-6" />
+          Start Scanning
+        </button>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div className={`p-4 rounded-lg border ${
+          result.success 
+            ? 'bg-green-500/20 border-green-500' 
+            : 'bg-red-500/20 border-red-500'
+        }`}>
+          <div className="flex items-center gap-3 mb-2">
+            {result.success ? (
+              <CheckCircleIcon className="w-6 h-6 text-green-400" />
+            ) : (
+              <XCircleIcon className="w-6 h-6 text-red-400" />
+            )}
+            <p className={`font-semibold ${result.success ? 'text-green-400' : 'text-red-400'}`}>
+              {result.message}
+            </p>
+          </div>
+          
+          {result.student && (
+            <div className="mt-3 text-telegram-text">
+              <p><strong>Student:</strong> {result.student.name}</p>
+              <p><strong>Mess No:</strong> {result.student.mess_no}</p>
+              <p><strong>Department:</strong> {result.student.department}</p>
+              <p><strong>Meal:</strong> {mealType.charAt(0).toUpperCase() + mealType.slice(1)}</p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setResult(null)}
+            className="mt-4 w-full btn-secondary"
+          >
+            Scan Another
+          </button>
+        </div>
+      )}
+
+      {/* Instructions */}
+      {!scanning && !result && (
+        <div className="card mt-6">
+          <h3 className="text-lg font-semibold text-telegram-text mb-3">Instructions</h3>
+          <ul className="space-y-2 text-telegram-hint text-sm">
+            <li>• Select the appropriate meal type</li>
+            <li>• Tap "Start Scanning" to activate camera</li>
+            <li>• Point camera at student's QR code</li>
+            <li>• Wait for automatic detection</li>
+            <li>• Attendance will be marked instantly</li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
 
-export default QRScannerComponent;
+export default Scanner;
