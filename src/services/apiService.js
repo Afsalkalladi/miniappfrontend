@@ -24,20 +24,20 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
           const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
             refresh: refreshToken
           });
-          
+
           const { access } = response.data;
           localStorage.setItem('access_token', access);
-          
+
           // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${access}`;
           return api(originalRequest);
@@ -54,7 +54,7 @@ api.interceptors.response.use(
         window.location.reload();
       }
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -62,9 +62,9 @@ api.interceptors.response.use(
 // Utility function to get current meal based on server time (Asia/Kolkata)
 const getCurrentMeal = () => {
   const now = new Date();
-  const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  const kolkataTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const hour = kolkataTime.getHours();
-  
+
   if (hour >= 6 && hour < 10) return 'breakfast';
   if (hour >= 12 && hour < 15) return 'lunch';
   if (hour >= 19 && hour < 22) return 'dinner';
@@ -74,7 +74,7 @@ const getCurrentMeal = () => {
 // Utility function to get current date in Asia/Kolkata timezone
 const getCurrentDate = () => {
   const now = new Date();
-  const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  const kolkataTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   return kolkataTime.toISOString().split('T')[0];
 };
 
@@ -117,13 +117,13 @@ export const apiService = {
     // Dashboard
     getDashboardStats: () => api.get('/mess/admin/dashboard-stats/'),
     getDashboardStatsV2: () => api.get('/mess/admin/dashboard-stats/v2/'),
-    
+
     // Bills Management
     generateBills: (data) => api.post('/mess/bills/generate/', data),
     getBills: (params) => api.get('/mess/bills/', { params }),
     addFine: (billId, data) => api.post(`/mess/bills/${billId}/add-fine/`, data),
     addOverdueFines: (data) => api.post('/mess/bills/add-overdue-fines/', data),
-    
+
     // Reports
     getMessCutLogs: (params) => api.get('/mess/reports/mess-cuts/', { params }),
     getPaymentLogs: (params) => api.get('/mess/reports/payments/', { params }),

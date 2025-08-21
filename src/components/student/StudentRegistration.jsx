@@ -20,6 +20,7 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   console.log('📝 StudentRegistration component loaded');
   console.log('👤 Telegram user:', telegramUser);
@@ -39,6 +40,7 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
     try {
       setLoading(true);
       setError(null);
+      setFieldErrors({});
 
       console.log('📤 Submitting registration...');
       console.log('📋 Registration data:', formData);
@@ -61,14 +63,22 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
 
       console.log('📤 Sending registration data:', registrationData);
 
-      const response = await apiService.auth.registerStudent(registrationData);
+      const response = await apiService.students.register(registrationData);
       console.log('✅ Registration successful:', response.data);
 
       onRegistrationSuccess(response.data.student);
 
     } catch (error) {
       console.error('❌ Registration failed:', error);
-      setError(error.response?.data?.error || error.message || 'Registration failed. Please try again.');
+      const data = error.response?.data;
+      if (error.response?.status === 400 && data && typeof data === 'object') {
+        // Capture field-level errors if present
+        setFieldErrors(data);
+        // Show a general message if provided; otherwise a default
+        setError(data.error || data.detail || 'Please correct the highlighted fields.');
+      } else {
+        setError(data?.error || error.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -123,6 +133,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
               placeholder="Enter your full name"
               required
             />
+            {fieldErrors?.name && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.name) ? fieldErrors.name[0] : String(fieldErrors.name)}
+              </p>
+            )}
           </div>
 
           {/* Auto-generated Mess Number Info */}
@@ -151,6 +166,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
+            {fieldErrors?.department && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.department) ? fieldErrors.department[0] : String(fieldErrors.department)}
+              </p>
+            )}
           </div>
 
           {/* Year of Study */}
@@ -168,6 +188,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
                 <option key={year} value={year}>{year}</option>
               ))}
             </select>
+            {fieldErrors?.year_of_study && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.year_of_study) ? fieldErrors.year_of_study[0] : String(fieldErrors.year_of_study)}
+              </p>
+            )}
           </div>
 
           {/* Mobile Number */}
@@ -184,6 +209,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
               placeholder="+91 9876543210"
               required
             />
+            {fieldErrors?.mobile_number && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.mobile_number) ? fieldErrors.mobile_number[0] : String(fieldErrors.mobile_number)}
+              </p>
+            )}
           </div>
 
           {/* Room Number */}
@@ -199,6 +229,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
               className="w-full bg-telegram-secondary border border-gray-600 rounded-lg px-4 py-3 text-telegram-text placeholder-telegram-hint focus:border-telegram-accent focus:outline-none"
               placeholder="e.g., A-101"
             />
+            {fieldErrors?.room_no && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.room_no) ? fieldErrors.room_no[0] : String(fieldErrors.room_no)}
+              </p>
+            )}
           </div>
 
           {/* Sahara Inmate */}
@@ -214,6 +249,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
               I am a Sahara Hostel inmate
             </label>
           </div>
+          {fieldErrors?.is_sahara_inmate && (
+            <p className="mt-1 text-sm text-red-400">
+              {Array.isArray(fieldErrors.is_sahara_inmate) ? fieldErrors.is_sahara_inmate[0] : String(fieldErrors.is_sahara_inmate)}
+            </p>
+          )}
 
           {/* Error Display */}
           {error && (
