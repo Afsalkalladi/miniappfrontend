@@ -153,170 +153,77 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
         </div>
       </div>
 
-      {/* Profile Information */}
-      <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 mb-6">
-        <h3 className="text-lg font-semibold text-telegram-text mb-4">Personal Information</h3>
-        
-        <div className="space-y-4">
-          {/* Name */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <UserIcon className="w-5 h-5 text-telegram-hint" />
+      {/* Telegram Info */}
+      {telegramUser && (
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <InformationCircleIcon className="w-5 h-5 text-blue-600" />
+            Telegram Account
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-600">Telegram ID</span>
+              <span className="text-gray-900 font-medium">{telegramUser.id}</span>
             </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Full Name</p>
-              {editing ? (
-                <input
-                  type="text"
-                  value={editData.name}
-                  onChange={(e) => setEditData({...editData, name: e.target.value})}
-                  className="w-full bg-telegram-bg border border-gray-600 rounded px-3 py-1 text-telegram-text"
-                />
-              ) : (
-                <p className="text-telegram-text font-medium">{student?.name || 'Not provided'}</p>
-              )}
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-600">Username</span>
+              <span className="text-gray-900 font-medium">@{telegramUser.username || 'N/A'}</span>
             </div>
-          </div>
-
-          {/* Mess Number */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <QrCodeIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Mess Number</p>
-              <p className="text-telegram-text font-medium font-mono">{student?.mess_no || 'Not assigned'}</p>
-            </div>
-          </div>
-
-          {/* Department */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <BuildingOfficeIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Department</p>
-              <p className="text-telegram-text font-medium">{student?.department || 'Not specified'}</p>
-            </div>
-          </div>
-
-          {/* Year of Study */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <BuildingOfficeIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Year of Study</p>
-              <p className="text-telegram-text font-medium">{student?.year_of_study || 'Not specified'}</p>
-            </div>
-          </div>
-
-          {/* Mobile Number */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <PhoneIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Mobile Number</p>
-              {editing ? (
-                <input
-                  type="tel"
-                  value={editData.mobile_number}
-                  onChange={(e) => setEditData({...editData, mobile_number: e.target.value})}
-                  className="w-full bg-telegram-bg border border-gray-600 rounded px-3 py-1 text-telegram-text"
-                />
-              ) : (
-                <p className="text-telegram-text font-medium">{student?.mobile_number || 'Not provided'}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Room Number */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <HomeIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Room Number</p>
-              {editing ? (
-                <input
-                  type="text"
-                  value={editData.room_no}
-                  onChange={(e) => setEditData({...editData, room_no: e.target.value})}
-                  className="w-full bg-telegram-bg border border-gray-600 rounded px-3 py-1 text-telegram-text"
-                />
-              ) : (
-                <p className="text-telegram-text font-medium">{student?.room_no || 'Not assigned'}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Sahara Inmate */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-telegram-bg rounded-lg">
-              <HomeIcon className="w-5 h-5 text-telegram-hint" />
-            </div>
-            <div className="flex-1">
-              <p className="text-telegram-hint text-sm">Sahara Hostel</p>
-              {editing ? (
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editData.is_sahara_inmate}
-                    onChange={(e) => setEditData({...editData, is_sahara_inmate: e.target.checked})}
-                    className="rounded"
-                  />
-                  <span className="text-telegram-text">Sahara Hostel Inmate</span>
-                </label>
-              ) : (
-                <p className="text-telegram-text font-medium">
-                  {student?.is_sahara_inmate ? 'Yes' : 'No'}
-                </p>
-              )}
+            <div className="flex justify-between py-2">
+              <span className="text-gray-600">Name</span>
+              <span className="text-gray-900 font-medium">
+                {telegramUser.first_name} {telegramUser.last_name || ''}
+              </span>
             </div>
           </div>
         </div>
-
-        {editing && (
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => setEditing(false)}
-              className="flex-1 btn-secondary"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveProfile}
-              className="flex-1 btn-primary"
-            >
-              Save Changes
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* QR Code Section */}
       {student?.qr_code && (
-        <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 text-center">
-          <h3 className="text-lg font-semibold text-telegram-text mb-4">My QR Code</h3>
-          <div className="bg-white p-4 rounded-lg inline-block mb-4">
+        <div className="bg-white rounded-xl p-6 shadow-sm border text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">My QR Code</h3>
+          <div className="bg-gray-50 p-4 rounded-lg inline-block mb-4">
             <img 
               src={student.qr_code} 
               alt="Student QR Code"
               className="w-32 h-32"
             />
           </div>
-          <p className="text-telegram-hint text-sm mb-4">
-            Show this QR code for attendance marking
+          <p className="text-gray-600 text-sm mb-4">
+            Show this QR code for mess entry
           </p>
-          <button
-            onClick={handleRegenerateQR}
-            className="btn-secondary"
-          >
-            Regenerate QR Code
-          </button>
         </div>
       )}
+
+      {/* System Info */}
+      <div className="bg-gray-50 rounded-xl p-6 border">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">System Information</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Current Time</span>
+            <span className="text-gray-900 font-medium">{getCurrentTime()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">App Version</span>
+            <span className="text-gray-900 font-medium">v1.0.0</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Role</span>
+            <span className="text-gray-900 font-medium">Student</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Logout Button */}
+      <button
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        className="w-full bg-red-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        <ArrowRightOnRectangleIcon className="w-5 h-5" />
+        {isLoggingOut ? 'Logging out...' : 'Logout'}
+      </button>
     </div>
   );
 };
