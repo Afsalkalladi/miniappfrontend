@@ -37,16 +37,26 @@ const AdminDashboard = ({ user, showToast }) => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [dashboardResponse, scannerResponse] = await Promise.all([
+      const [dashboardResult, scannerResult] = await Promise.allSettled([
         apiService.admin.getDashboardStats(),
         apiService.scanner.getStats({ date: apiService.utils.getCurrentDate() })
       ]);
 
-      setStats(dashboardResponse.data);
-      setScannerStats(scannerResponse.data);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-      showToast('Failed to load dashboard data', 'error');
+      if (dashboardResult.status === 'fulfilled') {
+        setStats(dashboardResult.value.data);
+      } else {
+        console.error('Dashboard stats failed:', dashboardResult.reason);
+        setStats({});
+        showToast('Dashboard stats unavailable', 'warning');
+      }
+
+      if (scannerResult.status === 'fulfilled') {
+        setScannerStats(scannerResult.value.data);
+      } else {
+        console.error('Scanner stats failed:', scannerResult.reason);
+        setScannerStats(null);
+        showToast('Scanner stats unavailable', 'warning');
+      }
     } finally {
       setLoading(false);
     }

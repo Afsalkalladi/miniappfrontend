@@ -116,6 +116,7 @@ export const apiService = {
   admin: {
     // Dashboard
     getDashboardStats: () => api.get('/mess/admin/dashboard-stats/'),
+    getDashboardStatsV2: () => api.get('/mess/admin/dashboard-stats/v2/'),
     
     // Bills Management
     generateBills: (data) => api.post('/mess/bills/generate/', data),

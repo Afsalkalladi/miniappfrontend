@@ -45,8 +45,13 @@ const AdminBills = ({ user, showToast }) => {
       const response = await apiService.admin.getBills({ status });
       setBills(response.data);
     } catch (error) {
-      console.error('Failed to load bills:', error);
-      showToast('Failed to load bills', 'error');
+      // Treat 404 as no data without surfacing an error toast
+      if (error.response?.status === 404) {
+        setBills([]);
+      } else {
+        console.error('Failed to load bills:', error);
+        showToast('Failed to load bills', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +61,18 @@ const AdminBills = ({ user, showToast }) => {
     e.preventDefault();
     try {
       setLoading(true);
+      // Validate total_mess_days against selected month (max days)
+      const [year, month] = generateForm.month.split('-').map(Number);
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if (
+        !Number.isFinite(generateForm.total_mess_days) ||
+        generateForm.total_mess_days < 1 ||
+        generateForm.total_mess_days > daysInMonth
+      ) {
+        showToast(`Total mess days must be between 1 and ${daysInMonth} for ${generateForm.month}.`, 'warning');
+        setLoading(false);
+        return;
+      }
       await apiService.admin.generateBills(generateForm);
       showToast('Bills generated successfully!', 'success');
       setShowGenerateForm(false);
@@ -64,7 +81,13 @@ const AdminBills = ({ user, showToast }) => {
       }
     } catch (error) {
       console.error('Failed to generate bills:', error);
-      showToast(error.response?.data?.error || 'Failed to generate bills', 'error');
+      const serverErr = error.response?.data?.error;
+      const serializerErr = error.response?.data;
+      if (serializerErr?.total_mess_days?.length) {
+        showToast(serializerErr.total_mess_days[0] || 'Invalid total mess days', 'error');
+      } else {
+        showToast(serverErr || 'Failed to generate bills', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -252,10 +275,15 @@ const AdminBills = ({ user, showToast }) => {
                   <input
                     type="number"
                     value={generateForm.total_mess_days}
-                    onChange={(e) => setGenerateForm(prev => ({ ...prev, total_mess_days: parseInt(e.target.value) }))}
+                    onChange={(e) => setGenerateForm(prev => ({ ...prev, total_mess_days: parseInt(e.target.value) || 0 }))}
+                    min={1}
+                    max={(() => { const [y, m] = generateForm.month.split('-').map(Number); return new Date(y, m, 0).getDate(); })()}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Max days this month: {(() => { const [y, m] = generateForm.month.split('-').map(Number); return new Date(y, m, 0).getDate(); })()}
+                  </p>
                 </div>
 
                 <div>

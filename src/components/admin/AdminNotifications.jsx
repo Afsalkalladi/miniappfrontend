@@ -40,7 +40,11 @@ const AdminNotifications = ({ user, showToast }) => {
       });
     } catch (error) {
       console.error('Failed to send bulk notification:', error);
-      showToast(error.response?.data?.error || 'Failed to send notification', 'error');
+      if (error.response?.status === 404) {
+        showToast('Notifications service unavailable (bulk endpoint not found)', 'warning');
+      } else {
+        showToast(error.response?.data?.error || 'Failed to send notification', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +64,11 @@ const AdminNotifications = ({ user, showToast }) => {
       });
     } catch (error) {
       console.error('Failed to send individual notification:', error);
-      showToast(error.response?.data?.error || 'Failed to send notification', 'error');
+      if (error.response?.status === 404) {
+        showToast('Notifications service unavailable (individual endpoint not found)', 'warning');
+      } else {
+        showToast(error.response?.data?.error || 'Failed to send notification', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -100,7 +108,11 @@ const AdminNotifications = ({ user, showToast }) => {
       showToast(`"${notification.title}" sent successfully!`, 'success');
     } catch (error) {
       console.error('Failed to send quick notification:', error);
-      showToast('Failed to send notification', 'error');
+      if (error.response?.status === 404) {
+        showToast('Notifications service unavailable', 'warning');
+      } else {
+        showToast(error.response?.data?.error || 'Failed to send notification', 'error');
+      }
     } finally {
       setLoading(false);
     }
