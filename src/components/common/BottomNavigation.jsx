@@ -38,7 +38,7 @@ const BottomNavigation = ({ activeTab, onTabChange, userType }) => {
         ];
       case 'staff':
         return [
-          { id: 'scanner', label: 'Scanner', icon: QrCodeScannerIcon, activeIcon: QrCodeScannerIconSolid },
+          { id: 'scanner', label: 'Scanner', icon: QrCodeIcon, activeIcon: QrCodeIconSolid },
           { id: 'profile', label: 'Profile', icon: UserIcon, activeIcon: UserIconSolid },
         ];
       default:

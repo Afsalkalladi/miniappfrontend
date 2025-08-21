@@ -8,7 +8,7 @@ import {
   ScissorsIcon,
   DocumentTextIcon,
   CurrencyRupeeIcon,
-  QrCodeScannerIcon,
+  QrCodeIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
 
@@ -156,7 +156,7 @@ const AdminDashboard = ({ user, showToast }) => {
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            <QrCodeScannerIcon className="w-5 h-5" />
+            <QrCodeIcon className="w-5 h-5" />
             Scan QR
           </button>
         </div>
