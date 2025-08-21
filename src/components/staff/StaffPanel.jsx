@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import BottomNavigation from '../common/BottomNavigation';
 import { useToast } from '../common/Toast';
-import StaffScanner from './StaffScanner';
+import StaffQRScanner from './StaffQRScanner';
 import StaffProfile from './StaffProfile';
 
 const StaffPanel = ({ user, telegramUser }) => {
@@ -11,11 +11,11 @@ const StaffPanel = ({ user, telegramUser }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'scanner':
-        return <StaffScanner user={user} showToast={showToast} />;
+        return <StaffQRScanner user={user} showToast={showToast} />;
       case 'profile':
         return <StaffProfile user={user} telegramUser={telegramUser} showToast={showToast} />;
       default:
-        return <StaffScanner user={user} showToast={showToast} />;
+        return <StaffQRScanner user={user} showToast={showToast} />;
     }
   };
 
