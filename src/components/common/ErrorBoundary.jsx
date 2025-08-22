@@ -38,7 +38,7 @@ class ErrorBoundary extends React.Component {
                   <pre className="bg-telegram-secondary p-2 rounded text-xs overflow-auto">
                     {this.state.error && this.state.error.toString()}
                     <br />
-                    {this.state.errorInfo.componentStack}
+                    {this.state.errorInfo && this.state.errorInfo.componentStack}
                   </pre>
                 </details>
               )}

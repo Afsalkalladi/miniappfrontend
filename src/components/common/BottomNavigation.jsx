@@ -32,7 +32,7 @@ const BottomNavigation = ({ activeTab, onTabChange, userType }) => {
       case 'student':
         return [
           { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, activeIcon: HomeIconSolid },
-          { id: 'mess-cuts', label: 'Mess Cuts', icon: ScissorsIcon, activeIcon: ScissorsIconSolid },
+          { id: 'mess-cut', label: 'Mess Cuts', icon: ScissorsIcon, activeIcon: ScissorsIconSolid },
           { id: 'bills', label: 'Bills', icon: DocumentTextIcon, activeIcon: DocumentTextIconSolid },
           { id: 'profile', label: 'Profile', icon: UserIcon, activeIcon: UserIconSolid },
         ];

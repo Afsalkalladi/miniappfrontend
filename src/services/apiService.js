@@ -1,7 +1,7 @@
 // Note: Using native fetch; axios not required
 
 // Base API configuration
-const API_BASE = 'https://miniapp-backend-0s1t.onrender.com/api';
+const API_BASE = 'http://localhost:8000/api';
 
 // API Error class
 class ApiError extends Error {
@@ -92,12 +92,26 @@ function routeUserBasedOnRole(user) {
   }
 }
 
-// Get current meal type based on time
+// Get current meal type based on Asia/Kolkata time
 function getCurrentMealType() {
-  const hour = new Date().getHours();
+  const now = new Date();
+  const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  const hour = kolkataTime.getHours();
   if (hour < 10) return 'breakfast';
   if (hour < 15) return 'lunch';
   return 'dinner';
+}
+
+// Get current date in Asia/Kolkata timezone
+function getCurrentDateKolkata() {
+  const now = new Date();
+  return new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+}
+
+// Check if mess cut can be taken (before 9 PM Kolkata time)
+function canTakeMessCut() {
+  const kolkataTime = getCurrentDateKolkata();
+  return kolkataTime.getHours() < 21; // Before 9 PM
 }
 
 // API service functions based on comprehensive guide
@@ -136,6 +150,7 @@ export const apiService = {
       body: JSON.stringify({ is_approved: isApproved })
     }),
 
+    // Bills management
     generateBills: () => apiRequest(`${API_BASE}/mess/admin/generate-bills/`, {
       method: 'POST',
       headers: {
@@ -143,14 +158,112 @@ export const apiService = {
       }
     }),
 
-    // Unpaid students list (backend-provided)
+    deleteBill: (billId) => apiRequest(`${API_BASE}/mess/bills/${billId}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    modifyBill: (billId, data) => apiRequest(`${API_BASE}/mess/bills/${billId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify(data)
+    }),
+
+    getPaidStudents: () => apiRequest(`${API_BASE}/mess/admin/paid-students/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
     getUnpaidStudents: () => apiRequest(`${API_BASE}/mess/admin/unpaid-students/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
 
-    // Keeping payment verification util for when a list endpoint is available
+    // Fines management
+    imposeFine: (studentId, amount, reason) => apiRequest(`${API_BASE}/mess/admin/fines/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ student_id: studentId, amount, reason })
+    }),
+
+    editFine: (fineId, data) => apiRequest(`${API_BASE}/mess/admin/fines/${fineId}/`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify(data)
+    }),
+
+    // Reports
+    getMessCutLogs: (startDate, endDate) => apiRequest(`${API_BASE}/mess/admin/reports/mess-cuts/?start_date=${startDate}&end_date=${endDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getPaymentLogs: (startDate, endDate) => apiRequest(`${API_BASE}/mess/admin/reports/payments/?start_date=${startDate}&end_date=${endDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getStudentLogs: () => apiRequest(`${API_BASE}/mess/admin/reports/students/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getAttendanceLogs: (startDate, endDate) => apiRequest(`${API_BASE}/mess/admin/reports/attendance/?start_date=${startDate}&end_date=${endDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    // Notifications
+    sendBulkNotification: (message, targetGroup) => apiRequest(`${API_BASE}/mess/admin/notifications/bulk/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ message, target_group: targetGroup })
+    }),
+
+    sendIndividualNotification: (studentId, message) => apiRequest(`${API_BASE}/mess/admin/notifications/individual/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ student_id: studentId, message })
+    }),
+
+    // QR Scanning for admin
+    markAttendance: (messNo, mealType, date) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        mess_no: messNo,
+        meal_type: mealType || getCurrentMealType(),
+        date: date || new Date().toISOString().split('T')[0],
+        is_manual_entry: false
+      })
+    }),
+
+    getTodayAttendanceStats: () => apiRequest(`${API_BASE}/mess/admin/attendance-stats/today/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
     verifyPayment: (billId, action) => apiRequest(`${API_BASE}/mess/bills/${billId}/verify/`, {
       method: 'POST',
       headers: {
@@ -252,7 +365,50 @@ export const apiService = {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
-    })
+    }),
+
+    // Student dashboard stats
+    getDashboardStats: () => apiRequest(`${API_BASE}/students/dashboard-stats/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    // Get QR code for student
+    getQRCode: () => apiRequest(`${API_BASE}/students/qr-code/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    // Payment QR code generation
+    getPaymentQR: (billId) => apiRequest(`${API_BASE}/mess/payment/generate-qr/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ bill_id: billId })
+    }),
+
+    // Submit payment details
+    submitPayment: (billId, transactionId, paymentMethod = 'UPI') => apiRequest(`${API_BASE}/mess/payment/submit/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ 
+        bill_id: billId, 
+        transaction_id: transactionId, 
+        payment_method: paymentMethod 
+      })
+    }),
+
+    // Get today's menu
+    getTodaysMenu: () => apiRequest(`${API_BASE}/mess/menu/today/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
   },
 
   // Backward compatibility alias
@@ -275,6 +431,8 @@ export const apiService = {
   // Utility functions
   utils: {
     getCurrentMealType,
+    getCurrentDateKolkata,
+    canTakeMessCut,
     routeUserBasedOnRole,
     ApiError
   }

@@ -24,8 +24,8 @@ const AdminReports = ({ user, showToast }) => {
     try {
       setLoading(true);
       setActiveReport('mess-cuts');
-      const response = await apiService.admin.getMessCutLogs(dateRange);
-      setReportData(response.data);
+      const response = await apiService.admin.getMessCutLogs(dateRange.from_date, dateRange.to_date);
+      setReportData(response);
       showToast('Mess cut report generated successfully', 'success');
     } catch (error) {
       console.error('Failed to generate mess cut report:', error);
@@ -39,10 +39,8 @@ const AdminReports = ({ user, showToast }) => {
     try {
       setLoading(true);
       setActiveReport('payments');
-      const response = await apiService.admin.getPaymentLogs({
-        month: new Date().toISOString().slice(0, 7)
-      });
-      setReportData(response.data);
+      const response = await apiService.admin.getPaymentLogs(dateRange.from_date, dateRange.to_date);
+      setReportData(response);
       showToast('Payment report generated successfully', 'success');
     } catch (error) {
       console.error('Failed to generate payment report:', error);
@@ -56,8 +54,8 @@ const AdminReports = ({ user, showToast }) => {
     try {
       setLoading(true);
       setActiveReport('students');
-      const response = await apiService.admin.getStudentActivity({ active: true });
-      setReportData(response.data);
+      const response = await apiService.admin.getStudentLogs();
+      setReportData(response);
       showToast('Student activity report generated successfully', 'success');
     } catch (error) {
       console.error('Failed to generate student report:', error);
@@ -71,11 +69,8 @@ const AdminReports = ({ user, showToast }) => {
     try {
       setLoading(true);
       setActiveReport('attendance');
-      const response = await apiService.admin.getAttendanceLogs({
-        date: new Date().toISOString().split('T')[0],
-        meal_type: 'lunch'
-      });
-      setReportData(response.data);
+      const response = await apiService.admin.getAttendanceLogs(dateRange.from_date, dateRange.to_date);
+      setReportData(response);
       showToast('Attendance report generated successfully', 'success');
     } catch (error) {
       console.error('Failed to generate attendance report:', error);

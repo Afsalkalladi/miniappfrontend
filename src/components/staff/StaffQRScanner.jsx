@@ -14,7 +14,6 @@ import {
   ArrowLeftIcon
 } from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
-import { parseQRCode, formatQRError } from '../../utils/qrParser';
 
 const StaffQRScanner = ({ onBack }) => {
   const [scanning, setScanning] = useState(true);
@@ -25,11 +24,18 @@ const StaffQRScanner = ({ onBack }) => {
 
   const getCurrentMeal = () => {
     const now = new Date();
-    const hour = now.getHours();
+    const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const hour = kolkataTime.getHours();
     
     if (hour < 10) return 'breakfast';
     if (hour < 15) return 'lunch';
     return 'dinner';
+  };
+
+  const getCurrentDate = () => {
+    const now = new Date();
+    const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    return kolkataTime.toISOString().split('T')[0];
   };
 
   const handleQRScan = async (result) => {
@@ -42,31 +48,35 @@ const StaffQRScanner = ({ onBack }) => {
 
       console.log('🔍 QR Code scanned:', result);
 
-      // Parse QR code using the utility function
-      const messNo = parseQRCode(result);
+      // Extract mess number from QR code
+      let messNo;
+      try {
+        // Try to parse as JSON first
+        const qrData = JSON.parse(result);
+        messNo = qrData.mess_no || qrData.messNo;
+      } catch {
+        // If not JSON, try to extract number directly
+        const match = result.match(/\d+/);
+        messNo = match ? match[0] : result;
+      }
+      
       console.log('🎯 Final mess number to lookup:', messNo);
 
       // Get student information with mess cut and bill status
       const response = await apiService.staff.getStudentInfo(messNo);
-      console.log('📋 Student info response:', response.data);
-      setStudentInfo(response.data);
+      console.log('📋 Student info response:', response);
+      setStudentInfo(response);
 
     } catch (error) {
       console.error('❌ Failed to get student info:', error);
       console.error('❌ Error details:', error.response?.data);
 
-      // Check if it's a QR parsing error
-      if (error.message && error.message.includes('Could not extract mess number')) {
-        const qrError = formatQRError(result, error);
-        setError(`QR Code Format Error: ${qrError.details}\n\nOriginal QR: ${qrError.originalQR}`);
-      } else {
-        // More detailed error message
-        const errorMessage = error.response?.data?.error || error.message || 'Failed to get student information';
-        const statusCode = error.response?.status;
-        const fullError = statusCode ? `${statusCode}: ${errorMessage}` : errorMessage;
+      // More detailed error message
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to get student information';
+      const statusCode = error.response?.status;
+      const fullError = statusCode ? `${statusCode}: ${errorMessage}` : errorMessage;
 
-        setError(`Student Lookup Failed: ${fullError}\n\nMess Number: ${messNo || 'Unknown'}`);
-      }
+      setError(`Student Lookup Failed: ${fullError}\n\nMess Number: ${messNo || 'Unknown'}`);
 
       setScanning(true);
     } finally {
@@ -81,10 +91,10 @@ const StaffQRScanner = ({ onBack }) => {
       const attendanceData = {
         mess_no: studentInfo.mess_no,
         meal_type: getCurrentMeal(),
-        date: new Date().toISOString().split('T')[0]
+        date: getCurrentDate()
       };
       
-      await apiService.attendance.markAttendance(attendanceData);
+      await apiService.staff.markAttendance(attendanceData);
       setAttendanceMarked(true);
       
       // Play success sound if available
@@ -213,8 +223,8 @@ const StaffQRScanner = ({ onBack }) => {
     const currentMeal = getCurrentMeal();
 
     // Safely check for mess cuts
+    const today = getCurrentDate();
     const isOnMessCut = Array.isArray(studentInfo.mess_cuts) && studentInfo.mess_cuts.some(cut => {
-      const today = new Date().toISOString().split('T')[0];
       return cut.from_date <= today && cut.to_date >= today && cut.status === 'approved';
     });
 
@@ -323,7 +333,6 @@ const StaffQRScanner = ({ onBack }) => {
             </p>
             {Array.isArray(studentInfo.mess_cuts) && studentInfo.mess_cuts
               .filter(cut => {
-                const today = new Date().toISOString().split('T')[0];
                 return cut.from_date <= today && cut.to_date >= today && cut.status === 'approved';
               })
               .map((cut, index) => (

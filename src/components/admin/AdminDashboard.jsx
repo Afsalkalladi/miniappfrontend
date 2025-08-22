@@ -1,225 +1,268 @@
 import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/apiService';
-import StatsCard from '../common/StatsCard';
-import QRScannerComponent from '../common/QRScanner';
-import LoadingSpinner from '../common/LoadingSpinner';
-import {
-  UsersIcon,
-  ScissorsIcon,
-  DocumentTextIcon,
-  CurrencyRupeeIcon,
+import { 
+  UsersIcon, 
+  ScissorsIcon, 
+  CurrencyRupeeIcon, 
   QrCodeIcon,
-  ClockIcon
+  CalendarDaysIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon
 } from '@heroicons/react/24/outline';
+import { QrScanner } from '@yudiel/react-qr-scanner';
+import { apiService } from '../../services/apiService';
 
-const AdminDashboard = ({ user, showToast }) => {
-  const [stats, setStats] = useState(null);
-  const [scannerStats, setScannerStats] = useState(null);
+const AdminDashboard = () => {
+  const [stats, setStats] = useState({
+    active_users: 0,
+    mess_cuts_tomorrow: 0,
+    unpaid_bills_count: 0,
+    total_revenue: 0
+  });
+  const [attendanceStats, setAttendanceStats] = useState({
+    breakfast: 0,
+    lunch: 0,
+    dinner: 0
+  });
   const [loading, setLoading] = useState(true);
-  const [showScanner, setShowScanner] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [currentMeal, setCurrentMeal] = useState(null);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [selectedMeal, setSelectedMeal] = useState(apiService.utils.getCurrentMealType());
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     loadDashboardData();
-    updateCurrentMeal();
-    
-    // Update meal every minute
-    const interval = setInterval(updateCurrentMeal, 60000);
-    return () => clearInterval(interval);
   }, []);
-
-  const updateCurrentMeal = () => {
-    const meal = apiService.utils.getCurrentMeal();
-    setCurrentMeal(meal);
-  };
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [dashboardResult, scannerResult] = await Promise.allSettled([
+      const [dashboardStats, todayStats] = await Promise.all([
         apiService.admin.getDashboardStats(),
-        apiService.scanner.getStats({ date: apiService.utils.getCurrentDate() })
+        apiService.admin.getTodayAttendanceStats()
       ]);
-
-      if (dashboardResult.status === 'fulfilled') {
-        setStats(dashboardResult.value.data);
-      } else {
-        console.error('Dashboard stats failed:', dashboardResult.reason);
-        setStats({});
-        showToast('Dashboard stats unavailable', 'warning');
-      }
-
-      if (scannerResult.status === 'fulfilled') {
-        setScannerStats(scannerResult.value.data);
-      } else {
-        console.error('Scanner stats failed:', scannerResult.reason);
-        setScannerStats(null);
-        showToast('Scanner stats unavailable', 'warning');
-      }
+      
+      setStats(dashboardStats);
+      setAttendanceStats(todayStats);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQRScan = async (qrData) => {
-    if (isScanning) return;
-    
-    setIsScanning(true);
+  const handleQRScan = async (result) => {
     try {
-      const response = await apiService.scanner.scanStudent({
-        qr_data: qrData,
-        meal_type: currentMeal,
-        date: apiService.utils.getCurrentDate()
-      });
-
-      if (response.data.success) {
-        const student = response.data.student;
-        let message = `✅ ${student.name} (${student.mess_no}) - Attendance marked`;
-        
-        if (response.data.warnings && response.data.warnings.length > 0) {
-          message += `\n⚠️ ${response.data.warnings.join(', ')}`;
-        }
-        
-        showToast(message, 'success');
-        
-        // Reload scanner stats
-        const scannerResponse = await apiService.scanner.getStats({ 
-          date: apiService.utils.getCurrentDate() 
-        });
-        setScannerStats(scannerResponse.data);
-      } else {
-        showToast('Failed to mark attendance', 'error');
+      setScannerActive(false);
+      const messNo = result[0]?.rawValue;
+      
+      if (!messNo) {
+        setScanResult({ success: false, message: 'Invalid QR code' });
+        return;
       }
+
+      const response = await apiService.admin.markAttendance(messNo, selectedMeal, selectedDate);
+      setScanResult({ 
+        success: true, 
+        message: `Attendance marked for Mess No: ${messNo}`,
+        studentInfo: response.student_info
+      });
+      
+      // Refresh attendance stats
+      const todayStats = await apiService.admin.getTodayAttendanceStats();
+      setAttendanceStats(todayStats);
+      
     } catch (error) {
-      console.error('QR scan error:', error);
-      showToast(error.response?.data?.error || 'Scan failed', 'error');
-    } finally {
-      setIsScanning(false);
-      setShowScanner(false);
+      setScanResult({ 
+        success: false, 
+        message: error.message || 'Failed to mark attendance' 
+      });
     }
   };
 
+  const StatCard = ({ icon: Icon, title, value, subtitle, color = "blue" }) => (
+    <div className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-${color}-500`}>
+      <div className="flex items-center">
+        <div className={`flex-shrink-0 p-3 bg-${color}-100 rounded-lg`}>
+          <Icon className={`h-6 w-6 text-${color}-600`} />
+        </div>
+        <div className="ml-4">
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="p-4">
-        <LoadingSpinner text="Loading dashboard..." />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">Mess Management System</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage mess operations and monitor statistics</p>
+        </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-2 gap-4">
-        <StatsCard
-          title="Active Users"
-          value={stats?.active_users || 0}
-          icon={UsersIcon}
-          color="blue"
-        />
-        <StatsCard
-          title="Tomorrow's Mess Cuts"
-          value={stats?.mess_cuts_tomorrow || 0}
-          icon={ScissorsIcon}
-          color="orange"
-        />
-        <StatsCard
-          title="Unpaid Bills"
-          value={stats?.unpaid_bills || 0}
-          icon={DocumentTextIcon}
-          color="red"
-        />
-        <StatsCard
-          title="Total Revenue"
-          value={`₹${(stats?.total_revenue || 0).toLocaleString()}`}
-          icon={CurrencyRupeeIcon}
-          color="green"
-        />
-      </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            icon={UsersIcon}
+            title="Active Users"
+            value={stats.active_users}
+            subtitle="Registered students"
+            color="blue"
+          />
+          <StatCard
+            icon={ScissorsIcon}
+            title="Tomorrow's Mess Cuts"
+            value={stats.mess_cuts_tomorrow}
+            subtitle="Students on leave"
+            color="yellow"
+          />
+          <StatCard
+            icon={CurrencyRupeeIcon}
+            title="Unpaid Bills"
+            value={stats.unpaid_bills_count}
+            subtitle="Students with dues"
+            color="red"
+          />
+          <StatCard
+            icon={CurrencyRupeeIcon}
+            title="Total Revenue"
+            value={`₹${stats.total_revenue?.toLocaleString() || 0}`}
+            subtitle="This month"
+            color="green"
+          />
+        </div>
 
-      {/* QR Scanner Section */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">QR Scanner</h3>
-            <p className="text-sm text-gray-600">
-              Current meal: {currentMeal ? (
-                <span className="capitalize font-medium text-blue-600">{currentMeal}</span>
-              ) : (
-                <span className="text-red-600">Outside meal hours</span>
+        {/* QR Scanner Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <QrCodeIcon className="h-6 w-6 mr-2" />
+              QR Scanner
+            </h2>
+            <button
+              onClick={() => setScannerActive(!scannerActive)}
+              className={`px-4 py-2 rounded-lg font-medium ${
+                scannerActive 
+                  ? 'bg-red-600 text-white hover:bg-red-700' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {scannerActive ? 'Stop Scanner' : 'Start Scanner'}
+            </button>
+          </div>
+
+          {/* Scanner Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Meal</label>
+              <select
+                value={selectedMeal}
+                onChange={(e) => setSelectedMeal(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+              </select>
+            </div>
+          </div>
+
+          {/* QR Scanner */}
+          {scannerActive && (
+            <div className="mb-4">
+              <QrScanner
+                onDecode={handleQRScan}
+                onError={(error) => console.error('QR Scanner Error:', error)}
+                containerStyle={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}
+              />
+            </div>
+          )}
+
+          {/* Scan Result */}
+          {scanResult && (
+            <div className={`p-4 rounded-lg ${
+              scanResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+            }`}>
+              <div className="flex items-center">
+                {scanResult.success ? (
+                  <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
+                ) : (
+                  <XCircleIcon className="h-5 w-5 text-red-600 mr-2" />
+                )}
+                <p className={`font-medium ${scanResult.success ? 'text-green-800' : 'text-red-800'}`}>
+                  {scanResult.message}
+                </p>
+              </div>
+              {scanResult.studentInfo && (
+                <div className="mt-2 text-sm text-gray-600">
+                  <p>Student: {scanResult.studentInfo.name}</p>
+                  <p>Department: {scanResult.studentInfo.department}</p>
+                  {scanResult.studentInfo.has_pending_dues && (
+                    <p className="text-red-600 font-medium">⚠️ Has pending dues</p>
+                  )}
+                  {scanResult.studentInfo.is_on_mess_cut && (
+                    <p className="text-yellow-600 font-medium">✂️ On mess cut today</p>
+                  )}
+                </div>
               )}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowScanner(true)}
-            disabled={!currentMeal || isScanning}
-            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-              currentMeal && !isScanning
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <QrCodeIcon className="w-5 h-5" />
-            Scan QR
-          </button>
+            </div>
+          )}
         </div>
 
-        {/* Today's Meal Stats */}
-        {scannerStats && (
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-sm text-orange-600 font-medium">Breakfast</p>
-              <p className="text-lg font-bold text-orange-700">
-                {scannerStats.breakfast?.scanned || 0}/{scannerStats.breakfast?.total || 0}
-              </p>
+        {/* Today's Attendance Stats */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+            <CalendarDaysIcon className="h-6 w-6 mr-2" />
+            Today's Attendance Statistics
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-orange-50 rounded-lg">
+              <ClockIcon className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-orange-800">Breakfast</h3>
+              <p className="text-2xl font-bold text-orange-900">{attendanceStats.breakfast}</p>
+              <p className="text-sm text-orange-600">Students scanned</p>
             </div>
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium">Lunch</p>
-              <p className="text-lg font-bold text-blue-700">
-                {scannerStats.lunch?.scanned || 0}/{scannerStats.lunch?.total || 0}
-              </p>
+            
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <ClockIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-blue-800">Lunch</h3>
+              <p className="text-2xl font-bold text-blue-900">{attendanceStats.lunch}</p>
+              <p className="text-sm text-blue-600">Students scanned</p>
             </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-sm text-purple-600 font-medium">Dinner</p>
-              <p className="text-lg font-bold text-purple-700">
-                {scannerStats.dinner?.scanned || 0}/{scannerStats.dinner?.total || 0}
-              </p>
+            
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <ClockIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-purple-800">Dinner</h3>
+              <p className="text-2xl font-bold text-purple-900">{attendanceStats.dinner}</p>
+              <p className="text-sm text-purple-600">Students scanned</p>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Current Time Info */}
-      <div className="bg-gray-50 rounded-lg p-4 text-center">
-        <div className="flex items-center justify-center gap-2 text-gray-600">
-          <ClockIcon className="w-5 h-5" />
-          <span className="text-sm">
-            Server Time (Asia/Kolkata): {new Date().toLocaleString('en-IN', {
-              timeZone: 'Asia/Kolkata',
-              hour12: true,
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit'
-            })}
-          </span>
         </div>
-      </div>
 
-      {/* QR Scanner Modal */}
-      {showScanner && (
-        <QRScannerComponent
-          onScan={handleQRScan}
-          onClose={() => setShowScanner(false)}
-          isScanning={isScanning}
-        />
-      )}
+      </div>
     </div>
   );
 };

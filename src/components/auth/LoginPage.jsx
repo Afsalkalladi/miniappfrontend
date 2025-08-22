@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { showError, showSuccess } from '../../utils/errorHandler';
-import StudentRegistration from '../student/StudentRegistration';
+import { apiService } from '../../services/apiService';
+import { LoginForm, StudentRegistrationForm } from './forms';
 
 const LoginPage = () => {
   const [telegramId, setTelegramId] = useState('');
@@ -11,14 +12,7 @@ const LoginPage = () => {
   const [telegramUser, setTelegramUser] = useState(null);
   const [registrationSubmitted, setRegistrationSubmitted] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!telegramId.trim()) {
-      showError('Please enter your Telegram ID');
-      return;
-    }
-
+  const handleLogin = async (telegramId) => {
     try {
       setLoading(true);
       const result = await login(telegramId);
@@ -51,7 +45,34 @@ const LoginPage = () => {
       }
       
     } catch (error) {
-      showError(error.message || 'Login failed');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegistration = async (formData) => {
+    try {
+      setLoading(true);
+      
+      const fd = new FormData();
+      fd.append('telegram_id', String(telegramUser?.id || ''));
+      fd.append('name', formData.name);
+      fd.append('department', formData.department);
+      if (formData.year_of_study) fd.append('year_of_study', String(formData.year_of_study));
+      fd.append('mobile_number', formData.mobile_number);
+      if (formData.room_no) fd.append('room_no', formData.room_no);
+      fd.append('is_sahara_inmate', formData.is_sahara_inmate ? '1' : '0');
+      fd.append('has_claim', formData.has_claim ? '1' : '0');
+      
+      const response = await apiService.students.register(fd);
+      
+      setRegistrationSubmitted(true);
+      setRegistrationRequired(false);
+      showSuccess('Registration submitted. Waiting for admin approval.');
+      
+    } catch (error) {
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -60,74 +81,39 @@ const LoginPage = () => {
   // Show registration form if needed
   if (registrationRequired) {
     return (
-      <StudentRegistration
-        telegramUser={telegramUser}
-        onRegistrationSuccess={() => {
-          setRegistrationSubmitted(true);
-          setRegistrationRequired(false);
-          showSuccess('Registration submitted. Waiting for admin approval. You can close this page.');
-        }}
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <StudentRegistrationForm
+          onRegister={handleRegistration}
+          loading={loading}
+          error={null}
+        />
+      </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full space-y-8 p-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Mess Management System
-            </h2>
-            <p className="text-gray-600 mb-8">
-              Sign in with your Telegram ID
-            </p>
-          </div>
-
-          <div id="error-container" style={{ display: 'none' }}></div>
-          <div id="success-container" style={{ display: 'none' }}></div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="telegram-id" className="block text-sm font-medium text-gray-700 mb-2">
-                Telegram ID
-              </label>
-              <input
-                id="telegram-id"
-                type="text"
-                value={telegramId}
-                onChange={(e) => setTelegramId(e.target.value)}
-                placeholder="Enter your Telegram ID"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={loading}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
-                </div>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have access? Contact your administrator.
-            </p>
-            {registrationSubmitted && (
-              <p className="text-sm text-green-600 mt-2">Registration submitted. Awaiting approval.</p>
-            )}
-          </div>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Mess Management System
+          </h1>
+          <p className="text-gray-600">
+            Sign in with your Telegram ID
+          </p>
         </div>
+
+        <LoginForm
+          onLogin={handleLogin}
+          loading={loading}
+          error={null}
+        />
+
+        {registrationSubmitted && (
+          <div className="text-center">
+            <p className="text-sm text-green-600">Registration submitted. Awaiting approval.</p>
+          </div>
+        )}
       </div>
     </div>
   );

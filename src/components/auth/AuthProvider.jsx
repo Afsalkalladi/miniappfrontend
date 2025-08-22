@@ -50,6 +50,14 @@ export const AuthProvider = ({ children }) => {
       if (data.user) {
         setUser(data.user);
         appState.setState('user', data.user);
+        // Store user data and tokens for persistence
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+        if (data.access_token) {
+          localStorage.setItem('access_token', data.access_token);
+        }
+        if (data.refresh_token) {
+          localStorage.setItem('refresh_token', data.refresh_token);
+        }
         return data; // Return full payload so caller can inspect
       }
 

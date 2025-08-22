@@ -7,9 +7,9 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import LoginPage from './components/auth/LoginPage';
 
 // Main Components
-import AdminDashboard from './components/admin/AdminDashboardNew';
-import StaffScanner from './components/staff/StaffScannerNew';
-import StudentPortal from './components/student/StudentPortalNew';
+import AdminPanel from './components/admin/AdminPanel';
+import StaffPanel from './components/staff/StaffPanel';
+import StudentPanel from './components/student/StudentPanel';
 
 // Common Components
 import LoadingScreen from './components/common/LoadingScreen';
@@ -30,7 +30,7 @@ function App() {
                 path="/admin-dashboard" 
                 element={
                   <ProtectedRoute requireAdmin={true}>
-                    <AdminDashboard />
+                    <AdminPanel />
                   </ProtectedRoute>
                 } 
               />
@@ -40,7 +40,7 @@ function App() {
                 path="/staff-scanner" 
                 element={
                   <ProtectedRoute requireStaff={true}>
-                    <StaffScanner />
+                    <StaffPanel />
                   </ProtectedRoute>
                 } 
               />
@@ -50,7 +50,7 @@ function App() {
                 path="/student-portal" 
                 element={
                   <ProtectedRoute requireStudent={true}>
-                    <StudentPortal />
+                    <StudentPanel />
                   </ProtectedRoute>
                 } 
               />

@@ -28,7 +28,7 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
       setError(null);
 
       const response = await apiService.students.getProfile();
-      setProfileData(response.data);
+      setProfileData(response);
     } catch (error) {
       console.error('Failed to load profile:', error);
       setError('Failed to load profile');
@@ -98,21 +98,28 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
     );
   }
 
-  const student = profileData?.student;
+  const student = profileData;
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-gray-600">View and manage your profile</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+          <p className="text-gray-600">View and manage your profile</p>
+        </div>
 
       {/* Profile Info */}
       <div className="bg-white rounded-xl p-6 shadow-sm border">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            <UserCircleIcon className="w-10 h-10 text-blue-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full overflow-hidden border-2 border-blue-200">
+            {student?.profile_picture ? (
+              <img src={student.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <UserCircleIcon className="w-10 h-10 text-blue-600" />
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -216,14 +223,15 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
       </div>
 
       {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        disabled={isLoggingOut}
-        className="w-full bg-red-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        <ArrowRightOnRectangleIcon className="w-5 h-5" />
-        {isLoggingOut ? 'Logging out...' : 'Logout'}
-      </button>
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full bg-red-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <ArrowRightOnRectangleIcon className="w-5 h-5" />
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
+        </button>
+      </div>
     </div>
   );
 };

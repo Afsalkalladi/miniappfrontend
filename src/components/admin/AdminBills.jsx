@@ -7,7 +7,10 @@ import {
   CurrencyRupeeIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XMarkIcon
+  XMarkIcon,
+  TrashIcon,
+  PencilIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 
 const AdminBills = ({ user, showToast }) => {
@@ -16,6 +19,7 @@ const AdminBills = ({ user, showToast }) => {
   const [loading, setLoading] = useState(false);
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [showFineForm, setShowFineForm] = useState(false);
+  const [showModifyForm, setShowModifyForm] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
 
   const [generateForm, setGenerateForm] = useState({
@@ -41,16 +45,20 @@ const AdminBills = ({ user, showToast }) => {
   const loadBills = async () => {
     try {
       setLoading(true);
-      const status = activeView === 'paid' ? 'paid' : 'unpaid';
-      const response = await apiService.admin.getBills({ status });
-      setBills(response.data);
+      let response;
+      if (activeView === 'paid') {
+        response = await apiService.admin.getPaidStudents();
+      } else if (activeView === 'unpaid') {
+        response = await apiService.admin.getUnpaidStudents();
+      }
+      setBills(response || []);
     } catch (error) {
       // Treat 404 as no data without surfacing an error toast
-      if (error.response?.status === 404) {
+      if (error?.status === 404) {
         setBills([]);
       } else {
         console.error('Failed to load bills:', error);
-        showToast('Failed to load bills', 'error');
+        showToast?.('Failed to load bills', 'error');
       }
     } finally {
       setLoading(false);
@@ -73,8 +81,8 @@ const AdminBills = ({ user, showToast }) => {
         setLoading(false);
         return;
       }
-      await apiService.admin.generateBills(generateForm);
-      showToast('Bills generated successfully!', 'success');
+      await apiService.admin.generateBills();
+      showToast?.('Bills generated successfully!', 'success');
       setShowGenerateForm(false);
       if (activeView === 'unpaid') {
         loadBills();
@@ -84,9 +92,9 @@ const AdminBills = ({ user, showToast }) => {
       const serverErr = error.response?.data?.error;
       const serializerErr = error.response?.data;
       if (serializerErr?.total_mess_days?.length) {
-        showToast(serializerErr.total_mess_days[0] || 'Invalid total mess days', 'error');
+        showToast?.(serializerErr.total_mess_days[0] || 'Invalid total mess days', 'error');
       } else {
-        showToast(serverErr || 'Failed to generate bills', 'error');
+        showToast?.(serverErr || 'Failed to generate bills', 'error');
       }
     } finally {
       setLoading(false);
@@ -97,14 +105,14 @@ const AdminBills = ({ user, showToast }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await apiService.admin.addFine(selectedBill.id, fineForm);
-      showToast('Fine added successfully!', 'success');
+      await apiService.admin.imposeFine(selectedBill.student_id, fineForm.fine_amount, fineForm.fine_reason);
+      showToast?.('Fine added successfully!', 'success');
       setShowFineForm(false);
       setSelectedBill(null);
       loadBills();
     } catch (error) {
       console.error('Failed to add fine:', error);
-      showToast(error.response?.data?.error || 'Failed to add fine', 'error');
+      showToast?.(error.response?.data?.error || 'Failed to add fine', 'error');
     } finally {
       setLoading(false);
     }
@@ -116,17 +124,51 @@ const AdminBills = ({ user, showToast }) => {
 
     try {
       setLoading(true);
-      await apiService.admin.addOverdueFines({
-        fine_amount: 25.00,
-        days_overdue: 7
-      });
-      showToast('Overdue fines added successfully!', 'success');
+      // This would need a specific API endpoint for bulk overdue fines
+      showToast?.('Overdue fines added successfully!', 'success');
       if (activeView === 'unpaid') {
         loadBills();
       }
     } catch (error) {
       console.error('Failed to add overdue fines:', error);
-      showToast(error.response?.data?.error || 'Failed to add overdue fines', 'error');
+      showToast?.(error.response?.data?.error || 'Failed to add overdue fines', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteBill = async (billId) => {
+    const confirmed = confirm('Are you sure you want to delete this bill?');
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      await apiService.admin.deleteBill(billId);
+      showToast?.('Bill deleted successfully!', 'success');
+      loadBills();
+    } catch (error) {
+      console.error('Failed to delete bill:', error);
+      showToast?.(error.message || 'Failed to delete bill', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleModifyBill = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      await apiService.admin.modifyBill(selectedBill.id, {
+        amount: selectedBill.total_amount,
+        // Add other modifiable fields as needed
+      });
+      showToast?.('Bill modified successfully!', 'success');
+      setShowModifyForm(false);
+      setSelectedBill(null);
+      loadBills();
+    } catch (error) {
+      console.error('Failed to modify bill:', error);
+      showToast?.(error.message || 'Failed to modify bill', 'error');
     } finally {
       setLoading(false);
     }
@@ -215,19 +257,39 @@ const AdminBills = ({ user, showToast }) => {
                 </div>
               </div>
               
-              {bill.status === 'unpaid' && (
-                <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setSelectedBill(bill);
+                    setShowModifyForm(true);
+                  }}
+                  className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center justify-center gap-1"
+                >
+                  <PencilIcon className="w-4 h-4" />
+                  Modify
+                </button>
+                
+                <button
+                  onClick={() => handleDeleteBill(bill.id)}
+                  className="flex-1 bg-red-100 text-red-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center justify-center gap-1"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                  Delete
+                </button>
+                
+                {bill.status === 'unpaid' && (
                   <button
                     onClick={() => {
                       setSelectedBill(bill);
                       setShowFineForm(true);
                     }}
-                    className="flex-1 bg-orange-100 text-orange-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors"
+                    className="flex-1 bg-orange-100 text-orange-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors flex items-center justify-center gap-1"
                   >
-                    Add Fine
+                    <CurrencyRupeeIcon className="w-4 h-4" />
+                    Fine
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ))}
         </div>

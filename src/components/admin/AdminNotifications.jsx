@@ -30,7 +30,7 @@ const AdminNotifications = ({ user, showToast }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await apiService.notifications.sendBulk(bulkForm);
+      await apiService.admin.sendBulkNotification(bulkForm.message, bulkForm.target_group);
       showToast('Bulk notification sent successfully!', 'success');
       setShowBulkForm(false);
       setBulkForm({
@@ -54,7 +54,7 @@ const AdminNotifications = ({ user, showToast }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await apiService.notifications.sendIndividual(individualForm);
+      await apiService.admin.sendIndividualNotification(individualForm.student_id, individualForm.message);
       showToast('Individual notification sent successfully!', 'success');
       setShowIndividualForm(false);
       setIndividualForm({
@@ -100,11 +100,7 @@ const AdminNotifications = ({ user, showToast }) => {
   const sendQuickNotification = async (notification) => {
     try {
       setLoading(true);
-      await apiService.notifications.sendBulk({
-        title: notification.title,
-        message: notification.message,
-        target_group: notification.target
-      });
+      await apiService.admin.sendBulkNotification(notification.message, notification.target);
       showToast(`"${notification.title}" sent successfully!`, 'success');
     } catch (error) {
       console.error('Failed to send quick notification:', error);
