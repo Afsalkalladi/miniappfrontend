@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { showError, showSuccess } from '../../utils/errorHandler';
+import StudentRegistration from '../student/StudentRegistration';
 
 const LoginPage = () => {
   const [telegramId, setTelegramId] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const [registrationRequired, setRegistrationRequired] = useState(false);
+  const [telegramUser, setTelegramUser] = useState(null);
+  const [registrationSubmitted, setRegistrationSubmitted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,19 +21,34 @@ const LoginPage = () => {
 
     try {
       setLoading(true);
-      const user = await login(telegramId);
-      showSuccess('Login successful! Redirecting...');
-      
-      // Role-based routing will be handled by the auth service
-      setTimeout(() => {
-        if (user.has_admin_access) {
-          window.location.href = '/admin-dashboard';
-        } else if (user.has_scanner_access) {
-          window.location.href = '/staff-scanner';
-        } else if (user.has_student_features) {
-          window.location.href = '/student-portal';
-        }
-      }, 1000);
+      const result = await login(telegramId);
+
+      // Handle registration states
+      if (result?.registration_status === 'needs_registration') {
+        setRegistrationRequired(true);
+        setTelegramUser({ id: result.telegram_id || telegramId });
+        showSuccess('Welcome! Please complete your registration.');
+        return;
+      }
+      if (result?.registration_status === 'pending_approval') {
+        showSuccess('Registration submitted. Awaiting admin approval.');
+        return;
+      }
+
+      // Logged-in user payload
+      const user = result?.user;
+      if (user) {
+        showSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          if (user.has_admin_access) {
+            window.location.href = '/admin-dashboard';
+          } else if (user.has_scanner_access) {
+            window.location.href = '/staff-scanner';
+          } else if (user.has_student_features) {
+            window.location.href = '/student-portal';
+          }
+        }, 800);
+      }
       
     } catch (error) {
       showError(error.message || 'Login failed');
@@ -37,6 +56,20 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+
+  // Show registration form if needed
+  if (registrationRequired) {
+    return (
+      <StudentRegistration
+        telegramUser={telegramUser}
+        onRegistrationSuccess={() => {
+          setRegistrationSubmitted(true);
+          setRegistrationRequired(false);
+          showSuccess('Registration submitted. Waiting for admin approval. You can close this page.');
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -90,6 +123,9 @@ const LoginPage = () => {
             <p className="text-sm text-gray-600">
               Don't have access? Contact your administrator.
             </p>
+            {registrationSubmitted && (
+              <p className="text-sm text-green-600 mt-2">Registration submitted. Awaiting approval.</p>
+            )}
           </div>
         </div>
       </div>

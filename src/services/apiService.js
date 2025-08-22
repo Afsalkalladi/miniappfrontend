@@ -1,4 +1,4 @@
-import axios from 'axios';
+// Note: Using native fetch; axios not required
 
 // Base API configuration
 const API_BASE = 'https://miniapp-backend-0s1t.onrender.com/api';
@@ -57,13 +57,25 @@ async function authenticateUser(telegramId) {
   const data = await response.json();
 
   if (response.ok) {
-    // Store tokens
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('refresh_token', data.refresh_token);
-    localStorage.setItem('user_data', JSON.stringify(data.user));
+    // Check if this is a full login response with tokens
+    if (data.access_token && data.refresh_token && data.user) {
+      // Store tokens for authenticated users
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      localStorage.setItem('user_data', JSON.stringify(data.user));
 
-    // Route based on user type
-    routeUserBasedOnRole(data.user);
+      // Route based on user type
+      routeUserBasedOnRole(data.user);
+    } else if (data.registration_status === 'needs_registration') {
+      // Store telegram_id for registration process
+      localStorage.setItem('telegram_id', telegramId);
+      localStorage.setItem('registration_status', 'needs_registration');
+    } else if (data.registration_status === 'pending_approval') {
+      // Store pending approval status
+      localStorage.setItem('telegram_id', telegramId);
+      localStorage.setItem('registration_status', 'pending_approval');
+      localStorage.setItem('student_data', JSON.stringify(data.student));
+    }
   }
 
   return data;
@@ -131,12 +143,14 @@ export const apiService = {
       }
     }),
 
-    getPendingPayments: () => apiRequest(`${API_BASE}/mess/admin/payment-verifications/`, {
+    // Unpaid students list (backend-provided)
+    getUnpaidStudents: () => apiRequest(`${API_BASE}/mess/admin/unpaid-students/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
 
+    // Keeping payment verification util for when a list endpoint is available
     verifyPayment: (billId, action) => apiRequest(`${API_BASE}/mess/bills/${billId}/verify/`, {
       method: 'POST',
       headers: {
@@ -174,7 +188,31 @@ export const apiService = {
   },
 
   // Student endpoints
-  student: {
+  students: {
+    // Registration expects multipart/form-data without auth
+    register: async (registrationData) => {
+      // If caller passed a FormData, use it directly
+      let formData;
+      if (registrationData instanceof FormData) {
+        formData = registrationData;
+      } else {
+        formData = new FormData();
+        Object.entries(registrationData || {}).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) formData.append(k, v);
+        });
+      }
+
+      const res = await fetch(`${API_BASE}/auth/register-student/`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new ApiError(data?.error || data?.message || 'Registration failed', res.status, data);
+      }
+      return data;
+    },
+
     getProfile: () => apiRequest(`${API_BASE}/students/profile/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -211,6 +249,23 @@ export const apiService = {
     }),
 
     getMyMessCuts: () => apiRequest(`${API_BASE}/mess/mess-cuts/my/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
+  },
+
+  // Backward compatibility alias
+  student: {
+    register: async (registrationData) => apiService.students.register(registrationData),
+
+    getProfile: () => apiRequest(`${API_BASE}/students/profile/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getBills: () => apiRequest(`${API_BASE}/mess/bills/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }

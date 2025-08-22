@@ -64,20 +64,18 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
       console.log('📤 Sending registration data:', registrationData);
 
       const response = await apiService.students.register(registrationData);
-      console.log('✅ Registration successful:', response.data);
+      console.log('✅ Registration successful:', response);
 
-      onRegistrationSuccess(response.data.student);
+      onRegistrationSuccess(response.student || response?.data?.student || null);
 
     } catch (error) {
       console.error('❌ Registration failed:', error);
-      const data = error.response?.data;
-      if (error.response?.status === 400 && data && typeof data === 'object') {
-        // Capture field-level errors if present
-        setFieldErrors(data);
-        // Show a general message if provided; otherwise a default
-        setError(data.error || data.detail || 'Please correct the highlighted fields.');
+      const details = error?.details;
+      if (error?.status === 400 && details && typeof details === 'object') {
+        setFieldErrors(details);
+        setError(details.error || details.detail || 'Please correct the highlighted fields.');
       } else {
-        setError(data?.error || error.message || 'Registration failed. Please try again.');
+        setError(details?.error || error.message || 'Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);

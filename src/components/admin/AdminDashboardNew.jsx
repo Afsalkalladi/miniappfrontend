@@ -7,7 +7,8 @@ import LoadingSpinner from '../common/LoadingSpinner';
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
-  const [pendingPayments, setPendingPayments] = useState([]);
+  const [unpaidStudents, setUnpaidStudents] = useState([]);
+  const [scannerOverview, setScannerOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -18,15 +19,17 @@ const AdminDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsData, studentsData, paymentsData] = await Promise.all([
+      const [statsData, studentsData, unpaidData, scannerData] = await Promise.all([
         apiService.admin.getDashboardStats(),
         apiService.admin.getAllStudents(),
-        apiService.admin.getPendingPayments()
+        apiService.admin.getUnpaidStudents(),
+        apiService.staff.getScannerDashboard().catch(() => null)
       ]);
       
       setStats(statsData);
       setStudents(studentsData);
-      setPendingPayments(paymentsData);
+      setUnpaidStudents(unpaidData);
+      setScannerOverview(scannerData);
     } catch (error) {
       showError('Failed to load dashboard data', error.message);
     } finally {
@@ -44,15 +47,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handlePaymentVerification = async (billId, action) => {
-    try {
-      await apiService.admin.verifyPayment(billId, action);
-      showSuccess(`Payment ${action}d successfully`);
-      loadDashboardData(); // Refresh data
-    } catch (error) {
-      showError('Failed to verify payment', error.message);
-    }
-  };
+  // Payment verification actions removed from UI for now
 
   const handleGenerateBills = async () => {
     try {
@@ -134,7 +129,7 @@ const AdminDashboard = () => {
               {[
                 { id: 'overview', name: 'Overview', icon: '📊' },
                 { id: 'students', name: 'Student Management', icon: '👥' },
-                { id: 'payments', name: 'Payment Verification', icon: '💳' }
+                { id: 'payments', name: 'Unpaid Students', icon: '💳' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -203,6 +198,55 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Today's Attendance (from Scanner) */}
+                {scannerOverview?.today_attendance && (
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Attendance</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {scannerOverview.today_attendance.total_scans}
+                        </div>
+                        <div className="text-sm text-gray-600">Total Scans</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {scannerOverview.today_attendance.unique_students}
+                        </div>
+                        <div className="text-sm text-gray-600">Unique Students</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {scannerOverview.current_date}
+                        </div>
+                        <div className="text-sm text-gray-600">Date</div>
+                      </div>
+                    </div>
+
+                    {/* Meal breakdown */}
+                    <div className="border-t pt-4 mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-xl font-semibold text-orange-600">
+                          {scannerOverview.today_attendance.meal_breakdown?.breakfast || 0}
+                        </div>
+                        <div className="text-xs text-gray-600">Breakfast</div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-semibold text-blue-600">
+                          {scannerOverview.today_attendance.meal_breakdown?.lunch || 0}
+                        </div>
+                        <div className="text-xs text-gray-600">Lunch</div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-semibold text-purple-600">
+                          {scannerOverview.today_attendance.meal_breakdown?.dinner || 0}
+                        </div>
+                        <div className="text-xs text-gray-600">Dinner</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -281,10 +325,10 @@ const AdminDashboard = () => {
               </div>
             )}
 
-            {/* Payment Verification Tab */}
+            {/* Unpaid Students Tab */}
             {activeTab === 'payments' && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Verification</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Unpaid Students</h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -293,56 +337,39 @@ const AdminDashboard = () => {
                           Student
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
+                          Mess No
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Transaction ID
+                          Amount Due
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Method
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                          Month
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {pendingPayments.map((payment) => (
-                        <tr key={payment.id}>
+                      {unpaidStudents.map((item, idx) => (
+                        <tr key={item.id || idx}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{payment.student_name}</div>
-                            <div className="text-sm text-gray-500">{payment.mess_no}</div>
+                            <div className="text-sm font-medium text-gray-900">{item.name || item.student_name || item.student?.name || 'N/A'}</div>
+                            <div className="text-sm text-gray-500">{item.mess_no || item.student?.mess_no || '—'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ₹{payment.amount?.toLocaleString()}
+                            {item.mess_no || item.student?.mess_no || '—'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {payment.transaction_number}
+                            {typeof item.amount_due === 'number' ? `₹${item.amount_due.toLocaleString()}` : (item.amount || '—')}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {payment.payment_method}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => handlePaymentVerification(payment.bill_id, 'approve')}
-                              className="text-green-600 hover:text-green-900"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handlePaymentVerification(payment.bill_id, 'reject')}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Reject
-                            </button>
+                            {item.month || item.billing_month || '—'}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {pendingPayments.length === 0 && (
+                  {unpaidStudents.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      No pending payments to verify
+                      No unpaid students
                     </div>
                   )}
                 </div>

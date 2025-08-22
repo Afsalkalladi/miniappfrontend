@@ -41,14 +41,19 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       
       const data = await apiService.auth.authenticateUser(telegramId);
-      
+
+      // If backend indicates registration is needed or pending, don't throw.
+      if (data?.registration_status === 'needs_registration' || data?.registration_status === 'pending_approval') {
+        return data; // Caller will decide what to show next (registration or pending screen)
+      }
+
       if (data.user) {
         setUser(data.user);
         appState.setState('user', data.user);
-        return data.user;
-      } else {
-        throw new Error(data.message || 'Authentication failed');
+        return data; // Return full payload so caller can inspect
       }
+
+      throw new Error(data?.message || 'Authentication failed');
     } catch (error) {
       setError(error.message);
       throw error;
