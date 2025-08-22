@@ -17,10 +17,17 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
     room_no: '',
     is_sahara_inmate: false
   });
+  const [profilePicture, setProfilePicture] = useState(null);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Static options
+  const departmentOptions = [
+    'CSE', 'ECE', 'EEE', 'ME', 'CE', 'IT', 'AI', 'DS', 'MBA', 'MCA', 'BSc', 'BCom', 'Other'
+  ];
+  const yearOptions = ['1', '2', '3', '4', '5'];
 
   console.log('📝 StudentRegistration component loaded');
   console.log('👤 Telegram user:', telegramUser);
@@ -34,6 +41,42 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
     console.log(`📝 Updated ${field}:`, value);
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      // Basic client validation: < 5MB and image/*
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Profile picture must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Profile picture must be an image');
+        return;
+      }
+    }
+    setError(null);
+    setProfilePicture(file);
+    console.log('🖼️ Selected profile picture:', file?.name, file?.size);
+  };
+
+  const validate = () => {
+    const errs = {};
+    const name = (formData.name || '').trim();
+    const dept = (formData.department || '').trim();
+    const year = (formData.year_of_study || '').toString().trim();
+    const mobile = (formData.mobile_number || '').trim();
+    const room = (formData.room_no || '').trim();
+
+    if (!name || name.length < 2) errs.name = 'Please enter your full name.';
+    if (!dept || !departmentOptions.includes(dept)) errs.department = 'Select a valid department.';
+    if (!year || !yearOptions.includes(year)) errs.year_of_study = 'Select a valid year of study (1-5).';
+    if (!mobile || !/^\d{10}$/.test(mobile)) errs.mobile_number = 'Enter a valid 10-digit mobile number.';
+    if (room && !/^[A-Za-z0-9\-\s]{1,10}$/.test(room)) errs.room_no = 'Room can be up to 10 letters/numbers.';
+    if (!profilePicture) errs.profile_picture = 'Profile picture is required.';
+
+    return errs;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -45,25 +88,40 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
       console.log('📤 Submitting registration...');
       console.log('📋 Registration data:', formData);
 
-      // Validate required fields
-      if (!formData.name || !formData.department || !formData.mobile_number) {
-        throw new Error('Please fill in all required fields');
+      // Strong client-side validation
+      const errs = validate();
+      if (Object.keys(errs).length) {
+        setFieldErrors(errs);
+        setError('Please correct the highlighted fields.');
+        setLoading(false);
+        return;
       }
 
-      // Real API call to backend
-      const registrationData = {
-        telegram_id: telegramUser.id.toString(),
-        name: formData.name,
-        department: formData.department,
-        year_of_study: formData.year_of_study,
-        mobile_number: formData.mobile_number,
-        room_no: formData.room_no,
-        is_sahara_inmate: formData.is_sahara_inmate
-      };
+      // Build FormData explicitly to control types and include file
+      const fd = new FormData();
+      const storedTg = localStorage.getItem('telegram_id');
+      fd.append('telegram_id', String(telegramUser?.id || telegramUser?.telegram_id || storedTg || ''));
+      fd.append('name', formData.name);
+      fd.append('department', formData.department);
+      if (formData.year_of_study) fd.append('year_of_study', String(formData.year_of_study));
+      fd.append('mobile_number', formData.mobile_number);
+      if (formData.room_no) fd.append('room_no', formData.room_no);
+      // Booleans as '1'/'0' to satisfy Django BooleanField parsing
+      fd.append('is_sahara_inmate', formData.is_sahara_inmate ? '1' : '0');
+      if (profilePicture) fd.append('profile_picture', profilePicture);
 
-      console.log('📤 Sending registration data:', registrationData);
+      console.log('📤 Sending registration FormData (no headers set):', {
+        telegram_id: fd.get('telegram_id'),
+        name: fd.get('name'),
+        department: fd.get('department'),
+        year_of_study: fd.get('year_of_study'),
+        mobile_number: fd.get('mobile_number'),
+        room_no: fd.get('room_no'),
+        is_sahara_inmate: fd.get('is_sahara_inmate'),
+        profile_picture: profilePicture?.name
+      });
 
-      const response = await apiService.students.register(registrationData);
+      const response = await apiService.students.register(fd);
       console.log('✅ Registration successful:', response);
 
       onRegistrationSuccess(response.student || response?.data?.student || null);
@@ -81,21 +139,6 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
       setLoading(false);
     }
   };
-
-  const departments = [
-    'Computer Science',
-    'Electronics',
-    'Mechanical',
-    'Civil',
-    'Electrical',
-    'Chemical',
-    'Biotechnology',
-    'Mathematics',
-    'Physics',
-    'Chemistry'
-  ];
-
-  const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG'];
 
   return (
     <div className="min-h-screen bg-telegram-bg p-4">
@@ -156,12 +199,11 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
             <select
               value={formData.department}
               onChange={(e) => handleInputChange('department', e.target.value)}
-              className="w-full bg-telegram-secondary border border-gray-600 rounded-lg px-4 py-3 text-telegram-text focus:border-telegram-accent focus:outline-none"
-              required
+              className="w-full bg-telegram-secondary text-telegram-text rounded-lg px-4 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-telegram-accent"
             >
-              <option value="">Select Department</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+              <option value="">Select department</option>
+              {departmentOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
             {fieldErrors?.department && (
@@ -252,6 +294,26 @@ const StudentRegistration = ({ telegramUser, onRegistrationSuccess }) => {
               {Array.isArray(fieldErrors.is_sahara_inmate) ? fieldErrors.is_sahara_inmate[0] : String(fieldErrors.is_sahara_inmate)}
             </p>
           )}
+
+          {/* Profile Picture (required) */}
+          <div>
+            <label className="block text-telegram-text mb-2">Profile Picture *</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="w-full text-telegram-text"
+              required
+            />
+            {profilePicture && (
+              <p className="text-xs text-gray-400 mt-1">Selected: {profilePicture.name}</p>
+            )}
+            {fieldErrors?.profile_picture && (
+              <p className="mt-1 text-sm text-red-400">
+                {Array.isArray(fieldErrors.profile_picture) ? fieldErrors.profile_picture[0] : String(fieldErrors.profile_picture)}
+              </p>
+            )}
+          </div>
 
           {/* Error Display */}
           {error && (
