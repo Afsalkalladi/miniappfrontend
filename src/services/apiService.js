@@ -1,145 +1,226 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://miniapp-backend-0s1t.onrender.com/api';
+// Base API configuration
+const API_BASE = 'http://127.0.0.1:8000/api';
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 30000, // 30 second timeout
-});
-
-// Add request interceptor for auth
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// API Error class
+class ApiError extends Error {
+  constructor(message, status, details = null) {
+    super(message);
+    this.status = status;
+    this.details = details;
   }
-  return config;
-});
+}
 
-// Add response interceptor for error handling and token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
-            refresh: refreshToken
-          });
-
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
-        } catch (refreshError) {
-          // Refresh failed, logout user
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          window.location.reload();
-        }
-      } else {
-        // No refresh token, logout user
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        window.location.reload();
+// Generic API request function with error handling
+async function apiRequest(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
       }
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new ApiError(
+        data.message || 'An error occurred',
+        response.status,
+        data.details
+      );
     }
-
-    return Promise.reject(error);
+    
+    return data;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError('Network error occurred', 0);
   }
-);
+}
 
-// Utility function to get current meal based on server time (Asia/Kolkata)
-const getCurrentMeal = () => {
-  const now = new Date();
-  const kolkataTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  const hour = kolkataTime.getHours();
+// Authentication function
+async function authenticateUser(telegramId) {
+  const response = await fetch(`${API_BASE}/auth/telegram-login/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      telegram_id: telegramId
+    })
+  });
+  
+  const data = await response.json();
+  
+  if (response.ok) {
+    // Store tokens
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+    localStorage.setItem('user_data', JSON.stringify(data.user));
+    
+    // Route based on user type
+    routeUserBasedOnRole(data.user);
+  }
+  
+  return data;
+}
 
-  if (hour >= 6 && hour < 10) return 'breakfast';
-  if (hour >= 12 && hour < 15) return 'lunch';
-  if (hour >= 19 && hour < 22) return 'dinner';
-  return null;
-};
+// Role-based routing
+function routeUserBasedOnRole(user) {
+  if (user.has_admin_access) {
+    window.location.href = '/admin-dashboard';
+  } else if (user.has_scanner_access) {
+    window.location.href = '/staff-scanner';
+  } else if (user.has_student_features) {
+    window.location.href = '/student-portal';
+  }
+}
 
-// Utility function to get current date in Asia/Kolkata timezone
-const getCurrentDate = () => {
-  const now = new Date();
-  const kolkataTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-  return kolkataTime.toISOString().split('T')[0];
-};
+// Get current meal type based on time
+function getCurrentMealType() {
+  const hour = new Date().getHours();
+  if (hour < 10) return 'breakfast';
+  if (hour < 15) return 'lunch';
+  return 'dinner';
+}
 
+// API service functions based on comprehensive guide
 export const apiService = {
-  // Authentication endpoints
+  // Authentication
   auth: {
-    loginWithTelegram: (data) => api.post('/auth/telegram-login/', data),
-  },
-
-  // Student endpoints
-  students: {
-    register: (data) => api.post('/students/register/', data),
-    getRegistrationStatus: () => api.get('/students/registration-status/'),
-    getProfile: () => api.get('/students/profile/'),
-    getDashboardStats: () => api.get('/students/dashboard-stats/'),
-    getBills: (params) => api.get('/students/bills/', { params }),
-    generatePaymentQR: (data) => api.post('/students/generate-payment-qr/', data),
-    submitPayment: (billId, data) => api.post(`/students/bills/${billId}/submit-payment/`, data),
-  },
-
-  // Mess cuts endpoints
-  messCuts: {
-    getStudentMessCuts: (params) => api.get('/mess/mess-cuts/', { params }),
-    applyMessCut: (data) => api.post('/mess/mess-cuts/', data),
-    cancelMessCut: (id) => api.delete(`/mess/mess-cuts/${id}/`),
-  },
-
-  // Scanner endpoints (for admin/staff)
-  scanner: {
-    scanStudent: (data) => api.post('/mess/scan/student/', {
-      ...data,
-      meal_type: data.meal_type || getCurrentMeal(),
-      date: data.date || getCurrentDate()
-    }),
-    getStats: (params) => api.get('/mess/scanner/stats/', { params }),
+    authenticateUser,
+    refreshToken: async () => {
+      const refreshToken = localStorage.getItem('refresh_token');
+      return apiRequest(`${API_BASE}/auth/refresh/`, {
+        method: 'POST',
+        body: JSON.stringify({ refresh: refreshToken })
+      });
+    }
   },
 
   // Admin endpoints
   admin: {
-    // Dashboard
-    getDashboardStats: () => api.get('/mess/admin/dashboard-stats/'),
-    getDashboardStatsV2: () => api.get('/mess/admin/dashboard-stats/v2/'),
-
-    // Bills Management
-    generateBills: (data) => api.post('/mess/bills/generate/', data),
-    getBills: (params) => api.get('/mess/bills/', { params }),
-    addFine: (billId, data) => api.post(`/mess/bills/${billId}/add-fine/`, data),
-    addOverdueFines: (data) => api.post('/mess/bills/add-overdue-fines/', data),
-
-    // Reports
-    getMessCutLogs: (params) => api.get('/mess/reports/mess-cuts/', { params }),
-    getPaymentLogs: (params) => api.get('/mess/reports/payments/', { params }),
-    getStudentActivity: (params) => api.get('/mess/reports/students/', { params }),
-    getAttendanceLogs: (params) => api.get('/mess/reports/attendance/', { params }),
+    getDashboardStats: () => apiRequest(`${API_BASE}/auth/admin/dashboard-stats/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    getAllStudents: () => apiRequest(`${API_BASE}/students/list/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    updateStudentStatus: (studentId, isApproved) => apiRequest(`${API_BASE}/students/${studentId}/approve/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ is_approved: isApproved })
+    }),
+    
+    generateBills: () => apiRequest(`${API_BASE}/mess/admin/generate-bills/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    getPendingPayments: () => apiRequest(`${API_BASE}/mess/admin/payment-verifications/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    verifyPayment: (billId, action) => apiRequest(`${API_BASE}/mess/bills/${billId}/verify/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({ action })
+    })
   },
 
-  // Notifications endpoints
-  notifications: {
-    sendBulk: (data) => api.post('/notifications/send-bulk/', data),
-    sendIndividual: (data) => api.post('/notifications/send-individual/', data),
+  // Staff endpoints
+  staff: {
+    getScannerDashboard: () => apiRequest(`${API_BASE}/mess/scanner/dashboard/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    markAttendance: (messNo, isManual = false) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        mess_no: messNo,
+        meal_type: getCurrentMealType(),
+        is_manual_entry: isManual
+      })
+    }),
+    
+    getAttendanceRecords: () => apiRequest(`${API_BASE}/mess/attendance/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
+  },
+
+  // Student endpoints
+  student: {
+    getProfile: () => apiRequest(`${API_BASE}/students/profile/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    getBills: () => apiRequest(`${API_BASE}/mess/bills/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+    
+    submitPayment: (billId, transactionNumber, paymentMethod = 'UPI') => apiRequest(`${API_BASE}/mess/bills/${billId}/payment/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        transaction_number: transactionNumber,
+        payment_method: paymentMethod
+      })
+    }),
+    
+    applyMessCut: (fromDate, toDate, reason) => apiRequest(`${API_BASE}/mess/mess-cuts/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        from_date: fromDate,
+        to_date: toDate,
+        reason: reason
+      })
+    }),
+    
+    getMyMessCuts: () => apiRequest(`${API_BASE}/mess/mess-cuts/my/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
   },
 
   // Utility functions
   utils: {
-    getCurrentMeal,
-    getCurrentDate,
-  },
+    getCurrentMealType,
+    routeUserBasedOnRole,
+    ApiError
+  }
 };
