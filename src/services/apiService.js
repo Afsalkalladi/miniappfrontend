@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE = 'http://127.0.0.1:8000/api';
+const API_BASE = 'https://miniapp-backend-0s1t.onrender.com/api';
 
 // API Error class
 class ApiError extends Error {
@@ -22,9 +22,9 @@ async function apiRequest(url, options = {}) {
         ...options.headers
       }
     });
-    
+
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new ApiError(
         data.message || 'An error occurred',
@@ -32,7 +32,7 @@ async function apiRequest(url, options = {}) {
         data.details
       );
     }
-    
+
     return data;
   } catch (error) {
     if (error instanceof ApiError) {
@@ -53,19 +53,19 @@ async function authenticateUser(telegramId) {
       telegram_id: telegramId
     })
   });
-  
+
   const data = await response.json();
-  
+
   if (response.ok) {
     // Store tokens
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('refresh_token', data.refresh_token);
     localStorage.setItem('user_data', JSON.stringify(data.user));
-    
+
     // Route based on user type
     routeUserBasedOnRole(data.user);
   }
-  
+
   return data;
 }
 
@@ -109,13 +109,13 @@ export const apiService = {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     getAllStudents: () => apiRequest(`${API_BASE}/students/list/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     updateStudentStatus: (studentId, isApproved) => apiRequest(`${API_BASE}/students/${studentId}/approve/`, {
       method: 'POST',
       headers: {
@@ -123,20 +123,20 @@ export const apiService = {
       },
       body: JSON.stringify({ is_approved: isApproved })
     }),
-    
+
     generateBills: () => apiRequest(`${API_BASE}/mess/admin/generate-bills/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     getPendingPayments: () => apiRequest(`${API_BASE}/mess/admin/payment-verifications/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     verifyPayment: (billId, action) => apiRequest(`${API_BASE}/mess/bills/${billId}/verify/`, {
       method: 'POST',
       headers: {
@@ -153,7 +153,7 @@ export const apiService = {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     markAttendance: (messNo, isManual = false) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
       method: 'POST',
       headers: {
@@ -165,7 +165,7 @@ export const apiService = {
         is_manual_entry: isManual
       })
     }),
-    
+
     getAttendanceRecords: () => apiRequest(`${API_BASE}/mess/attendance/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
@@ -180,13 +180,13 @@ export const apiService = {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     getBills: () => apiRequest(`${API_BASE}/mess/bills/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
-    
+
     submitPayment: (billId, transactionNumber, paymentMethod = 'UPI') => apiRequest(`${API_BASE}/mess/bills/${billId}/payment/`, {
       method: 'POST',
       headers: {
@@ -197,7 +197,7 @@ export const apiService = {
         payment_method: paymentMethod
       })
     }),
-    
+
     applyMessCut: (fromDate, toDate, reason) => apiRequest(`${API_BASE}/mess/mess-cuts/`, {
       method: 'POST',
       headers: {
@@ -209,7 +209,7 @@ export const apiService = {
         reason: reason
       })
     }),
-    
+
     getMyMessCuts: () => apiRequest(`${API_BASE}/mess/mess-cuts/my/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
