@@ -57,14 +57,27 @@ const StudentCard = ({
         {/* Actions */}
         <div className="flex items-center gap-2">
           {!student.is_approved && (
-            <Button
-              size="sm"
-              variant="success"
-              onClick={() => onApprove(student.id)}
-              title="Approve Student"
-            >
-              <CheckCircleIcon className="w-4 h-4" />
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="success"
+                onClick={() => onApprove(student.id)}
+                title="Approve Student"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => onReject(student.id)}
+                title="Reject Student"
+                className="bg-red-500 hover:bg-red-600"
+              >
+                <XCircleIcon className="w-4 h-4" />
+                Reject
+              </Button>
+            </>
           )}
           
           {student.is_approved && (
@@ -72,9 +85,10 @@ const StudentCard = ({
               size="sm"
               className="bg-yellow-500 hover:bg-yellow-600"
               onClick={() => onReject(student.id)}
-              title="Reject Student"
+              title="Revoke Approval"
             >
               <XCircleIcon className="w-4 h-4" />
+              Revoke
             </Button>
           )}
           

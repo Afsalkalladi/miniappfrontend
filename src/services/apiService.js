@@ -136,19 +136,41 @@ export const apiService = {
       }
     }),
 
+    getPendingStudents: () => apiRequest(`${API_BASE}/auth/admin/pending-students/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    approveStudent: (studentId) => apiRequest(`${API_BASE}/auth/admin/approve-student/${studentId}/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    rejectStudent: (studentId) => apiRequest(`${API_BASE}/auth/admin/reject-student/${studentId}/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
     getAllStudents: () => apiRequest(`${API_BASE}/students/list/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
     }),
 
-    updateStudentStatus: (studentId, isApproved) => apiRequest(`${API_BASE}/students/${studentId}/approve/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify({ is_approved: isApproved })
-    }),
+    updateStudentStatus: (studentId, action) => {
+      const endpoint = action === 'approve' ? 'approve' : 'reject';
+      return apiRequest(`${API_BASE}/students/${studentId}/${endpoint}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+    },
 
     // Bills management
     generateBills: () => apiRequest(`${API_BASE}/mess/admin/generate-bills/`, {

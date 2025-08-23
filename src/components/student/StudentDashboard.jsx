@@ -28,7 +28,7 @@ const StudentDashboard = ({ user, showToast }) => {
   const loadDashboardData = async () => {
     try {
       setDashboardData(prev => ({ ...prev, loading: true }));
-      
+
       // Load data with error handling for individual requests
       const [profileResponse, statsResponse] = await Promise.all([
         apiService.students.getProfile().catch(err => {
@@ -44,17 +44,20 @@ const StudentDashboard = ({ user, showToast }) => {
       console.log('Dashboard API responses:', { profileResponse, statsResponse });
       console.log('Extracted profile:', profileResponse?.data?.student || profileResponse?.student || profileResponse);
       console.log('Extracted stats:', statsResponse?.data?.stats || statsResponse?.stats || statsResponse);
+      console.log('Raw statsResponse:', statsResponse);
+      console.log('Stats mess_cuts_taken:', statsResponse?.data?.stats?.mess_cuts_taken);
+      console.log('Stats structure:', Object.keys(statsResponse?.data?.stats || {}));
 
       // Try to get QR code and menu separately with fallbacks
       let qrCodeResponse = null;
       let menuResponse = null;
-      
+
       try {
         qrCodeResponse = await apiService.students.getQRCode();
       } catch (err) {
         console.error('QR code error:', err);
       }
-      
+
       try {
         menuResponse = await apiService.students.getTodaysMenu();
       } catch (err) {
@@ -69,7 +72,7 @@ const StudentDashboard = ({ user, showToast }) => {
 
       setDashboardData({
         profile: profileResponse?.data?.student || profileResponse?.student || profileResponse,
-        stats: statsResponse?.data?.stats || statsResponse?.stats || statsResponse,
+        // stats: stats.total_used,
         qrCode: qrCodeResponse?.qr_code || statsResponse?.data?.student?.qr_code || profileResponse?.data?.student?.qr_code || profileResponse?.qr_code_url,
         todaysMenu: menuResponse?.menu || {
           breakfast: 'Idli, Sambar, Chutney',
@@ -118,15 +121,15 @@ const StudentDashboard = ({ user, showToast }) => {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto space-y-6">
-        
+
         {/* Header with Profile Photo and QR Code */}
         <div className="bg-white rounded-xl p-6 shadow-sm border">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-16 h-16 bg-gray-100 rounded-full overflow-hidden border-2 border-blue-200">
               {profile?.profile_picture ? (
-                <img 
-                  src={profile.profile_picture} 
-                  alt="Profile" 
+                <img
+                  src={profile.profile_picture}
+                  alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -149,9 +152,9 @@ const StudentDashboard = ({ user, showToast }) => {
               <h3 className="text-lg font-semibold text-blue-800">Your Mess QR Code</h3>
             </div>
             {qrCode ? (
-              <img 
-                src={qrCode} 
-                alt="QR Code" 
+              <img
+                src={qrCode}
+                alt="QR Code"
                 className="w-40 h-40 mx-auto mb-3 border-2 border-white rounded-lg shadow-sm"
               />
             ) : (
@@ -167,13 +170,6 @@ const StudentDashboard = ({ user, showToast }) => {
         {/* Stats Section */}
         <div className="grid grid-cols-2 gap-4">
           <StatCard
-            title="Mess Cuts Taken"
-            value={stats?.mess_cuts_taken || 0}
-            subtitle={`Out of 10 allowed`}
-            icon={ScissorsIcon}
-            color="orange"
-          />
-          <StatCard
             title="Pending Bills"
             value={`₹${stats?.pending_bill_amount || 0}`}
             subtitle={stats?.pending_bill_amount > 0 ? 'Pay now' : 'All clear'}
@@ -183,19 +179,12 @@ const StudentDashboard = ({ user, showToast }) => {
           <StatCard
             title="Today's Menu"
             value="Available"
-            subtitle={typeof todaysMenu === 'object' ? 
-              `${todaysMenu?.breakfast || 'Breakfast'}, ${todaysMenu?.lunch || 'Lunch'}, ${todaysMenu?.dinner || 'Dinner'}` : 
+            subtitle={typeof todaysMenu === 'object' ?
+              `${todaysMenu?.breakfast || 'Breakfast'}, ${todaysMenu?.lunch || 'Lunch'}, ${todaysMenu?.dinner || 'Dinner'}` :
               (todaysMenu || "Rice, Dal, Sabji, Roti")
             }
             icon={DocumentTextIcon}
             color="green"
-          />
-          <StatCard
-            title="Today's Date"
-            value={new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-            subtitle={new Date().toLocaleDateString('en-IN', { weekday: 'long' })}
-            icon={CalendarDaysIcon}
-            color="blue"
           />
         </div>
 
@@ -216,14 +205,14 @@ const StudentDashboard = ({ user, showToast }) => {
         <div className="bg-white rounded-xl p-6 shadow-sm border">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-1 gap-3">
-            <button 
+            <button
               onClick={() => window.location.hash = '#mess-cuts'}
               className="bg-blue-50 text-blue-700 p-4 rounded-lg font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
             >
               <ScissorsIcon className="w-5 h-5" />
               Apply for Mess Cut
             </button>
-            <button 
+            <button
               onClick={() => window.location.hash = '#bills'}
               className="bg-green-50 text-green-700 p-4 rounded-lg font-medium hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
             >

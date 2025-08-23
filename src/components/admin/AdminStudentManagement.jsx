@@ -22,6 +22,15 @@ const AdminStudentManagement = ({ onBack }) => {
     loadStudents();
   }, [currentPage, searchTerm, filterStatus]);
 
+  useEffect(() => {
+    // Check if we should filter to pending students from navigation
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterFromUrl = urlParams.get('filter');
+    if (filterFromUrl === 'pending') {
+      setFilterStatus('pending');
+    }
+  }, []);
+
   const loadStudents = async () => {
     try {
       setLoading(true);

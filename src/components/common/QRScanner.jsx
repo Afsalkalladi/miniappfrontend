@@ -207,7 +207,9 @@ const QRScanner = ({ onBack }) => {
         <div className="bg-telegram-secondary rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-600">
           {/* Modal Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-600">
-            <h2 className="text-lg font-bold text-telegram-text">Student Info - {currentMeal} {getMealIcon(currentMeal)}</h2>
+            <h2 className="text-lg font-bold text-telegram-text">
+              {attendanceMarked ? '✅ Attendance Marked!' : `Student Info - ${currentMeal} ${getMealIcon(currentMeal)}`}
+            </h2>
             <button
               onClick={() => setStudentInfo(null)}
               className="p-1 text-telegram-hint hover:text-telegram-text"

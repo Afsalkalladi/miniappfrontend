@@ -2,33 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { 
   UsersIcon, 
   ScissorsIcon, 
-  CurrencyRupeeIcon, 
-  QrCodeIcon,
+  CurrencyRupeeIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   CalendarDaysIcon,
   ClockIcon,
   CheckCircleIcon,
-  XCircleIcon
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { QrScanner } from '@yudiel/react-qr-scanner';
 import { apiService } from '../../services/apiService';
+import PendingStudentsList from './PendingStudentsList';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     active_users: 0,
     mess_cuts_tomorrow: 0,
     unpaid_bills_count: 0,
-    total_revenue: 0
+    pending_users: 0
   });
+  const [isStudentManagementExpanded, setIsStudentManagementExpanded] = useState(false);
   const [attendanceStats, setAttendanceStats] = useState({
     breakfast: 0,
     lunch: 0,
     dinner: 0
   });
   const [loading, setLoading] = useState(true);
-  const [scannerActive, setScannerActive] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [selectedMeal, setSelectedMeal] = useState(apiService.utils.getCurrentMealType());
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     loadDashboardData();
@@ -48,35 +46,6 @@ const AdminDashboard = () => {
       console.error('Failed to load dashboard data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQRScan = async (result) => {
-    try {
-      setScannerActive(false);
-      const messNo = result[0]?.rawValue;
-      
-      if (!messNo) {
-        setScanResult({ success: false, message: 'Invalid QR code' });
-        return;
-      }
-
-      const response = await apiService.admin.markAttendance(messNo, selectedMeal, selectedDate);
-      setScanResult({ 
-        success: true, 
-        message: `Attendance marked for Mess No: ${messNo}`,
-        studentInfo: response.student_info
-      });
-      
-      // Refresh attendance stats
-      const todayStats = await apiService.admin.getTodayAttendanceStats();
-      setAttendanceStats(todayStats);
-      
-    } catch (error) {
-      setScanResult({ 
-        success: false, 
-        message: error.message || 'Failed to mark attendance' 
-      });
     }
   };
 
@@ -113,21 +82,14 @@ const AdminDashboard = () => {
           <p className="text-gray-600 mt-2">Manage mess operations and monitor statistics</p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Only 2 Cards */}
         <div className="grid grid-cols-2 gap-4">
-          <StatCard
-            icon={UsersIcon}
-            title="Active Users"
-            value={stats.active_users}
-            subtitle="Registered students"
-            color="blue"
-          />
           <StatCard
             icon={ScissorsIcon}
             title="Tomorrow's Mess Cuts"
             value={stats.mess_cuts_tomorrow}
             subtitle="Students on leave"
-            color="yellow"
+            color="orange"
           />
           <StatCard
             icon={CurrencyRupeeIcon}
@@ -136,33 +98,45 @@ const AdminDashboard = () => {
             subtitle="Students with dues"
             color="red"
           />
-          <StatCard
-            icon={CurrencyRupeeIcon}
-            title="Total Revenue"
-            value={`₹${stats.total_revenue?.toLocaleString() || 0}`}
-            subtitle="This month"
-            color="green"
-          />
         </div>
 
-        {/* QR Scanner Section */}
+        {/* Student Management Section - Expandable */}
         <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <QrCodeIcon className="h-6 w-6 mr-2" />
-              QR Scanner
+          <button
+            onClick={() => setIsStudentManagementExpanded(!isStudentManagementExpanded)}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <UsersIcon className="w-5 h-5 mr-2" />
+              Student Management
             </h2>
-            <button
-              onClick={() => window.location.href = '/admin-scanner'}
-              className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Open Scanner
-            </button>
-          </div>
+            {isStudentManagementExpanded ? (
+              <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronRightIcon className="w-5 h-5 text-gray-500" />
+            )}
+          </button>
           
-          <p className="text-gray-600 text-center py-4">
-            Click "Open Scanner" to access the full QR scanning interface for attendance marking.
-          </p>
+          {/* Always show active students count */}
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg mb-4">
+            <div className="flex items-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                <UsersIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-900">Active Students</h3>
+                <p className="text-sm text-blue-600">Approved and registered</p>
+              </div>
+            </div>
+            <span className="text-2xl font-bold text-blue-900">{stats.active_users}</span>
+          </div>
+
+          {/* Expandable Section - Only Pending Students */}
+          {isStudentManagementExpanded && (
+            <div className="border-t pt-4">
+              <PendingStudentsList />
+            </div>
+          )}
         </div>
 
         {/* Today's Attendance Stats */}
