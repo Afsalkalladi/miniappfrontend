@@ -87,11 +87,14 @@ const QRScanner = ({ onBack }) => {
       const response = await apiService.staff.markAttendance(attendanceData);
       console.log('✅ Attendance marked:', response);
       
-      setAttendanceMarked(true);
-      
       if (window.Telegram?.WebApp?.HapticFeedback) {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
       }
+
+      // Auto-close modal and reset for next scan
+      setTimeout(() => {
+        handleScanAnother();
+      }, 1000); // Show success for 1 second then reset
 
     } catch (error) {
       console.error('❌ Failed to mark attendance:', error);
@@ -267,47 +270,37 @@ const QRScanner = ({ onBack }) => {
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
-              {attendanceMarked ? (
-                <div className="flex-1 text-center">
-                  <div className="bg-green-500/20 border border-green-500 rounded-lg p-3 mb-3">
-                    <h4 className="text-green-400 font-medium">✅ Attendance Marked Successfully!</h4>
-                    <p className="text-green-300 text-sm">For {selectedMeal} on {formatDate(selectedDate)}</p>
-                  </div>
-                  <button
-                    onClick={handleScanAnother}
-                    className="w-full bg-telegram-accent text-white py-3 rounded-lg font-medium"
-                  >
-                    Scan Another Student
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setStudentInfo(null)}
-                    className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-medium"
-                  >
-                    Back to Scanner
-                  </button>
-                  <button
-                    onClick={handleMarkAttendance}
-                    disabled={loading || (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)}
-                    className={`flex-1 py-3 rounded-lg font-medium ${
-                      (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)
-                        ? 'bg-red-600 text-white cursor-not-allowed' 
-                        : loading 
-                        ? 'bg-gray-600 text-white' 
-                        : 'bg-telegram-accent text-white hover:bg-blue-600'
-                    }`}
-                  >
-                    {loading ? 'Marking...' : (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0) ? 'On Mess Cut' : `Mark ${selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1)} Attendance`}
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => setStudentInfo(null)}
+                className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-medium"
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleMarkAttendance}
+                disabled={loading || (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)}
+                className={`flex-1 py-3 rounded-lg font-medium ${
+                  (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)
+                    ? 'bg-red-600 text-white cursor-not-allowed' 
+                    : loading 
+                    ? 'bg-gray-600 text-white' 
+                    : 'bg-telegram-accent text-white hover:bg-blue-600'
+                }`}
+              >
+                {loading ? 'Marking...' : (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0) ? 'On Mess Cut' : `Mark Attendance`}
+              </button>
             </div>
           </div>
         </div>
       </div>
     );
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_data');
+    window.location.href = '/';
   };
 
   return (
@@ -316,14 +309,20 @@ const QRScanner = ({ onBack }) => {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={onBack}
-          className="p-2 hover:bg-telegram-secondary rounded-lg transition-colors"
+          className="p-2 bg-telegram-secondary rounded-lg border border-gray-600"
         >
           <ArrowLeftIcon className="w-5 h-5 text-telegram-text" />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-telegram-text">QR Scanner</h1>
           <p className="text-telegram-hint">Scan student QR code for {getCurrentMeal()}</p>
         </div>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Logout
+        </button>
       </div>
 
       {/* Show Modal if student info exists */}
