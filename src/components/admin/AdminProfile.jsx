@@ -60,13 +60,13 @@ const AdminProfile = ({ user, telegramUser, showToast }) => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-gray-600">Admin Access</p>
-              <p className="font-medium text-green-600">
+              <p className={`font-medium ${user?.has_admin_access ? 'text-green-600' : 'text-red-600'}`}>
                 {user?.has_admin_access ? 'Enabled' : 'Disabled'}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Scanner Access</p>
-              <p className="font-medium text-blue-600">
+              <p className={`font-medium ${user?.has_scanner_access ? 'text-green-600' : 'text-red-600'}`}>
                 {user?.has_scanner_access ? 'Enabled' : 'Disabled'}
               </p>
             </div>

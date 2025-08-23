@@ -1,7 +1,7 @@
 // Note: Using native fetch; axios not required
 
 // Base API configuration
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'https://miniapp-backend-0s1t.onrender.com/api';
 
 // API Error class
 class ApiError extends Error {
@@ -95,7 +95,7 @@ function routeUserBasedOnRole(user) {
 // Get current meal type based on Asia/Kolkata time
 function getCurrentMealType() {
   const now = new Date();
-  const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  const kolkataTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const hour = kolkataTime.getHours();
   if (hour < 10) return 'breakfast';
   if (hour < 15) return 'lunch';
@@ -105,7 +105,7 @@ function getCurrentMealType() {
 // Get current date in Asia/Kolkata timezone
 function getCurrentDateKolkata() {
   const now = new Date();
-  return new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+  return new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
 }
 
 // Check if mess cut can be taken (before 9 PM Kolkata time)
@@ -347,16 +347,18 @@ export const apiService = {
       }
     }),
 
-    markAttendance: (messNo, isManual = false) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
+    getStudentInfo: (messNo) => apiRequest(`${API_BASE}/mess/scanner/student/${messNo}/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    markAttendance: (attendanceData) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       },
-      body: JSON.stringify({
-        mess_no: messNo,
-        meal_type: getCurrentMealType(),
-        is_manual_entry: isManual
-      })
+      body: JSON.stringify(attendanceData)
     }),
 
     getAttendanceRecords: () => apiRequest(`${API_BASE}/mess/attendance/`, {
@@ -462,10 +464,10 @@ export const apiService = {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       },
-      body: JSON.stringify({ 
-        bill_id: billId, 
-        transaction_id: transactionId, 
-        payment_method: paymentMethod 
+      body: JSON.stringify({
+        bill_id: billId,
+        transaction_id: transactionId,
+        payment_method: paymentMethod
       })
     }),
 
