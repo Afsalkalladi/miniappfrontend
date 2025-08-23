@@ -21,6 +21,8 @@ const StaffQRScanner = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualMessNo, setManualMessNo] = useState('');
 
   const getCurrentMeal = () => {
     const now = new Date();
@@ -114,7 +116,37 @@ const StaffQRScanner = ({ onBack }) => {
     setStudentInfo(null);
     setAttendanceMarked(false);
     setError(null);
+    setShowManualEntry(false);
+    setManualMessNo('');
     setScanning(true);
+  };
+
+  const handleManualEntry = async () => {
+    if (!manualMessNo.trim()) {
+      setError('Please enter a mess number');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setScanning(false);
+      setShowManualEntry(false);
+
+      console.log('🔍 Manual entry for mess number:', manualMessNo);
+
+      // Get student information
+      const response = await apiService.staff.getStudentInfo(manualMessNo.trim());
+      console.log('📋 Student info response:', response);
+      setStudentInfo(response);
+
+    } catch (error) {
+      console.error('❌ Failed to get student info:', error);
+      setError(`Student Lookup Failed: ${error.response?.data?.error || error.message}\n\nMess Number: ${manualMessNo}`);
+      setShowManualEntry(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getMealIcon = (mealType) => {
@@ -203,6 +235,39 @@ const StaffQRScanner = ({ onBack }) => {
               }}
             />
           </div>
+          
+          {/* Stop Scanning Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setScanning(false)}
+              className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              Stop Scanning
+            </button>
+          </div>
+        </div>
+
+        {/* Manual Entry Option */}
+        <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-4 mb-4">
+          <h4 className="text-yellow-400 font-medium mb-2">✍️ Manual Entry</h4>
+          <p className="text-yellow-300 text-sm mb-3">Can't scan QR code? Enter mess number manually:</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualMessNo}
+              onChange={(e) => setManualMessNo(e.target.value)}
+              placeholder="Enter mess number"
+              className="flex-1 px-3 py-2 bg-telegram-bg border border-gray-600 rounded-lg text-telegram-text placeholder-telegram-hint"
+              onKeyPress={(e) => e.key === 'Enter' && handleManualEntry()}
+            />
+            <button
+              onClick={handleManualEntry}
+              disabled={loading || !manualMessNo.trim()}
+              className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Search'}
+            </button>
+          </div>
         </div>
 
         {/* Instructions */}
@@ -256,18 +321,23 @@ const StaffQRScanner = ({ onBack }) => {
         {/* Student Profile Card */}
         <div className="bg-telegram-secondary rounded-lg p-6 border border-gray-600 mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 bg-telegram-accent rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-telegram-accent rounded-full flex items-center justify-center overflow-hidden">
               {studentInfo.profile_image ? (
                 <img 
                   src={studentInfo.profile_image} 
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
                 />
-              ) : (
+              ) : null}
+              <div className={`w-16 h-16 bg-telegram-accent rounded-full flex items-center justify-center ${studentInfo.profile_image ? 'hidden' : 'flex'}`}>
                 <span className="text-white font-bold text-xl">
                   {studentInfo.name?.charAt(0)?.toUpperCase() || 'S'}
                 </span>
-              )}
+              </div>
             </div>
             
             <div className="flex-1">
@@ -406,33 +476,48 @@ const StaffQRScanner = ({ onBack }) => {
         </div>
 
         {/* Attendance Action */}
-        {!isOnMessCut && studentInfo.is_approved && (
-          <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
-            {attendanceMarked ? (
-              <div className="text-center">
-                <CheckCircleIcon className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                <h4 className="text-green-400 font-medium mb-2">✅ Attendance Marked!</h4>
-                <p className="text-green-300 text-sm mb-4">
-                  {currentMeal} attendance recorded for {studentInfo.name}
-                </p>
-                <button
-                  onClick={handleScanAnother}
-                  className="btn-primary w-full"
-                >
-                  Scan Next Student
-                </button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="text-4xl mb-3">{getMealIcon(currentMeal)}</div>
-                <h4 className="text-telegram-text font-medium mb-2">Mark {currentMeal} Attendance</h4>
-                <p className="text-telegram-hint text-sm mb-4">
-                  Confirm {studentInfo.name}'s entry for {currentMeal}
-                </p>
+        <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+          {attendanceMarked ? (
+            <div className="text-center">
+              <CheckCircleIcon className="w-12 h-12 text-green-400 mx-auto mb-3" />
+              <h4 className="text-green-400 font-medium mb-2">✅ Attendance Marked!</h4>
+              <p className="text-green-300 text-sm mb-4">
+                {currentMeal} attendance recorded for {studentInfo.name}
+              </p>
+              <button
+                onClick={handleScanAnother}
+                className="btn-primary w-full"
+              >
+                Scan Next Student
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <div className="text-4xl mb-3">{getMealIcon(currentMeal)}</div>
+              <h4 className="text-telegram-text font-medium mb-2">Mark {currentMeal} Attendance</h4>
+              <p className="text-telegram-hint text-sm mb-4">
+                Confirm {studentInfo.name}'s entry for {currentMeal}
+              </p>
+              
+              {/* Show mess cut warning if applicable */}
+              {isOnMessCut ? (
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      setError('❌ Cannot mark attendance: Student is on mess cut!');
+                      setTimeout(() => setError(null), 3000);
+                    }}
+                    className="bg-red-600 text-white py-3 px-6 rounded-lg font-semibold w-full flex items-center justify-center gap-2"
+                  >
+                    <XCircleIcon className="w-5 h-5" />
+                    Mark Attendance (Mess Cut Active)
+                  </button>
+                </div>
+              ) : (
                 <button
                   onClick={handleMarkAttendance}
-                  disabled={loading}
-                  className="bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition-colors w-full flex items-center justify-center gap-2"
+                  disabled={loading || !studentInfo.is_approved}
+                  className="bg-green-500 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-600 transition-colors w-full flex items-center justify-center gap-2 disabled:bg-gray-500 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -441,10 +526,16 @@ const StaffQRScanner = ({ onBack }) => {
                   )}
                   {loading ? 'Marking...' : 'Mark Attendance'}
                 </button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              
+              {!studentInfo.is_approved && (
+                <p className="text-red-400 text-sm mt-2">
+                  ⚠️ Student not approved - cannot mark attendance
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Error Display */}
         {error && (

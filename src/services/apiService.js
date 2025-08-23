@@ -1,7 +1,7 @@
 // Note: Using native fetch; axios not required
 
 // Base API configuration
-const API_BASE = 'https://miniapp-backend-0s1t.onrender.com/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://miniapp-backend-0s1t.onrender.com/api';
 
 // API Error class
 class ApiError extends Error {
