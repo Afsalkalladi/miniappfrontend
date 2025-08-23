@@ -233,14 +233,15 @@ const AdminReports = ({ user, showToast }) => {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-900">Reports & Analytics</h2>
-        <p className="text-gray-600 mt-1">Generate and view system reports</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h2 className="text-xl font-bold text-gray-900">Reports & Analytics</h2>
+          <p className="text-gray-600 mt-1">Generate and view system reports</p>
+        </div>
 
-      {/* Date Range Selector */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border">
+        {/* Date Range Selector */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="text-lg font-semibold mb-3">Date Range</h3>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -264,8 +265,9 @@ const AdminReports = ({ user, showToast }) => {
         </div>
       </div>
 
-      {/* Report Generation Buttons */}
-      <div className="grid grid-cols-2 gap-4">
+        {/* Report Generation Buttons */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <div className="grid grid-cols-2 gap-4">
         <button
           onClick={generateMessCutReport}
           disabled={loading}
@@ -301,17 +303,19 @@ const AdminReports = ({ user, showToast }) => {
           <ClockIcon className="w-5 h-5" />
           Attendance Logs
         </button>
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-lg p-8">
-          <LoadingSpinner text="Generating report..." />
+          </div>
         </div>
-      )}
 
-      {/* Report Data */}
-      {!loading && reportData && renderReportData()}
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-xl p-8 shadow-sm border">
+            <LoadingSpinner text="Generating report..." />
+          </div>
+        )}
+
+        {/* Report Data */}
+        {!loading && reportData && renderReportData()}
+      </div>
     </div>
   );
 };

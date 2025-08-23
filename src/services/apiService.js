@@ -258,7 +258,7 @@ export const apiService = {
       })
     }),
 
-    getTodayAttendanceStats: () => apiRequest(`${API_BASE}/mess/admin/attendance-stats/today/`, {
+    getTodayAttendanceStats: () => apiRequest(`${API_BASE}/auth/admin/attendance-stats/today/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       }
@@ -270,6 +270,72 @@ export const apiService = {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`
       },
       body: JSON.stringify({ action })
+    }),
+
+    getPendingPayments: async () => {
+      const response = await apiRequest(`${API_BASE}/mess/admin/payments/pending/`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+      return response.data?.pending_bills || [];
+    },
+
+    modifyBill: (billId, data) => apiRequest(`${API_BASE}/mess/bills/${billId}/modify/`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify(data)
+    }),
+
+    imposeFine: (studentId, fineAmount, fineReason) => apiRequest(`${API_BASE}/mess/admin/create-fine/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        student_id: studentId,
+        fine_amount: fineAmount,
+        fine_reason: fineReason
+      })
+    }),
+
+    addOverdueFines: (daysOverdue, fineAmount, fineReason) => apiRequest(`${API_BASE}/mess/bills/add-overdue-fines/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        days_overdue: daysOverdue,
+        fine_amount: fineAmount,
+        fine_reason: fineReason
+      })
+    }),
+
+    // Reports API methods
+    getMessCutLogs: (fromDate, toDate) => apiRequest(`${API_BASE}/mess/admin/reports/mess-cuts/?from_date=${fromDate}&to_date=${toDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getPaymentLogs: (fromDate, toDate) => apiRequest(`${API_BASE}/mess/admin/reports/payments/?from_date=${fromDate}&to_date=${toDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getStudentLogs: () => apiRequest(`${API_BASE}/mess/admin/reports/students/`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
+    getAttendanceLogs: (fromDate, toDate) => apiRequest(`${API_BASE}/mess/admin/reports/attendance/?from_date=${fromDate}&to_date=${toDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
     })
   },
 

@@ -81,15 +81,15 @@ const AdminDashboard = () => {
   };
 
   const StatCard = ({ icon: Icon, title, value, subtitle, color = "blue" }) => (
-    <div className={`bg-white rounded-lg shadow-md p-6 border-l-4 border-${color}-500`}>
+    <div className={`bg-white rounded-lg shadow-sm p-4 border-l-4 border-${color}-500`}>
       <div className="flex items-center">
-        <div className={`flex-shrink-0 p-3 bg-${color}-100 rounded-lg`}>
-          <Icon className={`h-6 w-6 text-${color}-600`} />
+        <div className={`flex-shrink-0 p-2 bg-${color}-100 rounded-lg`}>
+          <Icon className={`h-5 w-5 text-${color}-600`} />
         </div>
-        <div className="ml-4">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        <div className="ml-3">
+          <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+          <p className="text-lg font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -105,16 +105,16 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-md mx-auto space-y-6">
         
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage mess operations and monitor statistics</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 gap-4">
           <StatCard
             icon={UsersIcon}
             title="Active Users"
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* QR Scanner Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <QrCodeIcon className="h-6 w-6 mr-2" />
@@ -232,32 +232,44 @@ const AdminDashboard = () => {
         </div>
 
         {/* Today's Attendance Stats */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
           <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
             <CalendarDaysIcon className="h-6 w-6 mr-2" />
             Today's Attendance Statistics
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <ClockIcon className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-orange-800">Breakfast</h3>
-              <p className="text-2xl font-bold text-orange-900">{attendanceStats.breakfast}</p>
-              <p className="text-sm text-orange-600">Students scanned</p>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+              <div className="flex items-center">
+                <ClockIcon className="h-6 w-6 text-orange-600 mr-3" />
+                <div>
+                  <h3 className="font-semibold text-orange-800">Breakfast</h3>
+                  <p className="text-xs text-orange-600">Students scanned</p>
+                </div>
+              </div>
+              <p className="text-xl font-bold text-orange-900">{attendanceStats.breakfast}</p>
             </div>
             
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <ClockIcon className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-blue-800">Lunch</h3>
-              <p className="text-2xl font-bold text-blue-900">{attendanceStats.lunch}</p>
-              <p className="text-sm text-blue-600">Students scanned</p>
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-center">
+                <ClockIcon className="h-6 w-6 text-blue-600 mr-3" />
+                <div>
+                  <h3 className="font-semibold text-blue-800">Lunch</h3>
+                  <p className="text-xs text-blue-600">Students scanned</p>
+                </div>
+              </div>
+              <p className="text-xl font-bold text-blue-900">{attendanceStats.lunch}</p>
             </div>
             
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <ClockIcon className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-purple-800">Dinner</h3>
-              <p className="text-2xl font-bold text-purple-900">{attendanceStats.dinner}</p>
-              <p className="text-sm text-purple-600">Students scanned</p>
+            <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+              <div className="flex items-center">
+                <ClockIcon className="h-6 w-6 text-purple-600 mr-3" />
+                <div>
+                  <h3 className="font-semibold text-purple-800">Dinner</h3>
+                  <p className="text-xs text-purple-600">Students scanned</p>
+                </div>
+              </div>
+              <p className="text-xl font-bold text-purple-900">{attendanceStats.dinner}</p>
             </div>
           </div>
         </div>

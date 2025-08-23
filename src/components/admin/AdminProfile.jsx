@@ -19,14 +19,15 @@ const AdminProfile = ({ user, telegramUser, showToast }) => {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-900">Admin Profile</h2>
-        <p className="text-gray-600 mt-1">Account settings and information</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h2 className="text-xl font-bold text-gray-900">Admin Profile</h2>
+          <p className="text-gray-600 mt-1">Account settings and information</p>
+        </div>
 
-      {/* Profile Card */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        {/* Profile Card */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
             <UserIcon className="w-8 h-8 text-blue-600" />
@@ -73,43 +74,44 @@ const AdminProfile = ({ user, telegramUser, showToast }) => {
         </div>
       </div>
 
-      {/* System Information */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-3">System Information</h4>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">App Version</span>
-            <span className="font-medium">v1.0.0</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Last Login</span>
-            <span className="font-medium">{new Date().toLocaleDateString()}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Server Time</span>
-            <span className="font-medium">
-              {new Date().toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                hour12: true
-              })}
-            </span>
-          </div>
+        {/* System Information */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h4 className="font-medium text-gray-900 mb-3">System Information</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">App Version</span>
+              <span className="font-medium">v1.0.1</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Last Login</span>
+              <span className="font-medium">{new Date().toLocaleDateString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Server Time</span>
+              <span className="font-medium">
+                {new Date().toLocaleString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                  hour12: true
+                })}
+              </span>
+            </div>
         </div>
-      </div>
+        </div>
 
-      {/* Logout Button */}
-      <button
+        {/* Logout Button */}
+        <button
         onClick={handleLogout}
         className="w-full bg-red-600 text-white p-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-700 transition-colors"
       >
         <ArrowRightOnRectangleIcon className="w-5 h-5" />
         Logout
-      </button>
+        </button>
 
-      {/* Footer */}
-      <div className="text-center text-sm text-gray-500">
-        <p>Mess Management System</p>
-        <p>Admin Panel Access</p>
+        {/* Footer */}
+        <div className="text-center text-sm text-gray-500">
+          <p>Mess Management System</p>
+          <p>Admin Panel Access</p>
+        </div>
       </div>
     </div>
   );

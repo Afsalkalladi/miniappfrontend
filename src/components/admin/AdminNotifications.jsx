@@ -115,14 +115,16 @@ const AdminNotifications = ({ user, showToast }) => {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="text-center">
-        <h2 className="text-xl font-bold text-gray-900">Send Notifications</h2>
-        <p className="text-gray-600 mt-1">Communicate with students</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <h2 className="text-xl font-bold text-gray-900">Send Notifications</h2>
+          <p className="text-gray-600 mt-1">Communicate with students</p>
+        </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-4">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <div className="grid grid-cols-1 gap-4">
         <button
           onClick={() => setShowBulkForm(true)}
           className="bg-blue-600 text-white p-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
@@ -138,10 +140,11 @@ const AdminNotifications = ({ user, showToast }) => {
           <UserIcon className="w-5 h-5" />
           Send Individual Notification
         </button>
-      </div>
+          </div>
+        </div>
 
-      {/* Quick Notification Templates */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border">
+        {/* Quick Notification Templates */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <SpeakerWaveIcon className="w-5 h-5" />
           Quick Templates
@@ -168,14 +171,14 @@ const AdminNotifications = ({ user, showToast }) => {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-lg p-8">
-          <LoadingSpinner text="Sending notification..." />
         </div>
-      )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-xl p-8 shadow-sm border">
+            <LoadingSpinner text="Sending notification..." />
+          </div>
+        )}
 
       {/* Bulk Notification Modal */}
       {showBulkForm && (
@@ -335,6 +338,7 @@ const AdminNotifications = ({ user, showToast }) => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

@@ -16,6 +16,9 @@ import {
 const AdminBills = ({ user, showToast }) => {
   const [activeView, setActiveView] = useState('overview');
   const [bills, setBills] = useState([]);
+  const [filteredBills, setFilteredBills] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pendingPayments, setPendingPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [showFineForm, setShowFineForm] = useState(false);
@@ -33,33 +36,77 @@ const AdminBills = ({ user, showToast }) => {
 
   const [fineForm, setFineForm] = useState({
     fine_amount: 50.00,
-    fine_reason: 'Late payment'
+    fine_reason: 'Late payment',
+    days_overdue: 7
   });
 
   useEffect(() => {
     if (activeView === 'paid' || activeView === 'unpaid') {
       loadBills();
+    } else if (activeView === 'pending') {
+      loadPendingPayments();
     }
   }, [activeView]);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredBills(bills);
+    } else {
+      const filtered = bills.filter(bill => 
+        bill.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bill.roll_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bill.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredBills(filtered);
+    }
+  }, [bills, searchQuery]);
 
   const loadBills = async () => {
     try {
       setLoading(true);
+      setBills([]); // Clear existing data first
       let response;
       if (activeView === 'paid') {
         response = await apiService.admin.getPaidStudents();
       } else if (activeView === 'unpaid') {
         response = await apiService.admin.getUnpaidStudents();
       }
-      setBills(response || []);
-    } catch (error) {
-      // Treat 404 as no data without surfacing an error toast
-      if (error?.status === 404) {
-        setBills([]);
+      
+      // Ensure response is an array and has valid data
+      const billsData = Array.isArray(response) ? response : [];
+      setBills(billsData);
+      
+      if (billsData.length === 0) {
+        console.log(`No ${activeView} bills found`);
       } else {
-        console.error('Failed to load bills:', error);
-        showToast?.('Failed to load bills', 'error');
+        console.log(`Loaded ${billsData.length} ${activeView} bills`);
       }
+    } catch (error) {
+      console.error('Error loading bills:', error);
+      setBills([]);
+      showToast(`Failed to load ${activeView} bills`, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPendingPayments = async () => {
+    try {
+      setLoading(true);
+      setPendingPayments([]); // Clear existing data first
+      const response = await apiService.admin.getPendingPayments();
+      const paymentsData = Array.isArray(response) ? response : [];
+      setPendingPayments(paymentsData);
+      
+      if (paymentsData.length === 0) {
+        console.log('No pending payments found');
+      } else {
+        console.log(`Loaded ${paymentsData.length} pending payments`);
+      }
+    } catch (error) {
+      console.error('Error loading pending payments:', error);
+      setPendingPayments([]);
+      showToast('Failed to load pending payments', 'error');
     } finally {
       setLoading(false);
     }
@@ -105,11 +152,15 @@ const AdminBills = ({ user, showToast }) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await apiService.admin.imposeFine(selectedBill.student_id, fineForm.fine_amount, fineForm.fine_reason);
-      showToast?.('Fine added successfully!', 'success');
+      
+      // Only bulk fine for overdue bills
+      await apiService.admin.addOverdueFines(fineForm.days_overdue, fineForm.fine_amount, fineForm.fine_reason);
+      showToast?.('Bulk fines added successfully!', 'success');
+      
       setShowFineForm(false);
-      setSelectedBill(null);
-      loadBills();
+      if (activeView === 'unpaid') {
+        loadBills();
+      }
     } catch (error) {
       console.error('Failed to add fine:', error);
       showToast?.(error.response?.data?.error || 'Failed to add fine', 'error');
@@ -119,12 +170,9 @@ const AdminBills = ({ user, showToast }) => {
   };
 
   const handleAddOverdueFines = async () => {
-    const confirmed = confirm('Add ₹25 fine to all bills overdue by 7+ days?');
-    if (!confirmed) return;
-
     try {
       setLoading(true);
-      // This would need a specific API endpoint for bulk overdue fines
+      await apiService.admin.addOverdueFines(7, 50, 'Late payment fine - 7 days overdue');
       showToast?.('Overdue fines added successfully!', 'success');
       if (activeView === 'unpaid') {
         loadBills();
@@ -132,6 +180,73 @@ const AdminBills = ({ user, showToast }) => {
     } catch (error) {
       console.error('Failed to add overdue fines:', error);
       showToast?.(error.response?.data?.error || 'Failed to add overdue fines', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprovePayment = async (paymentId) => {
+    try {
+      setLoading(true);
+      await apiService.admin.verifyPayment(paymentId, 'approve');
+      showToast?.('Payment approved successfully!', 'success');
+      loadPendingPayments();
+    } catch (error) {
+      console.error('Failed to approve payment:', error);
+      showToast?.(error.response?.data?.error || 'Failed to approve payment', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async (paymentId) => {
+    try {
+      setLoading(true);
+      await apiService.admin.verifyPayment(paymentId, 'reject');
+      showToast?.('Payment rejected successfully!', 'success');
+      loadPendingPayments();
+    } catch (error) {
+      console.error('Failed to reject payment:', error);
+      showToast?.(error.response?.data?.error || 'Failed to reject payment', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleModifyBill = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const formData = new FormData(e.target);
+      const data = {
+        amount: parseFloat(formData.get('amount')),
+        fine_amount: parseFloat(formData.get('fine_amount')) || 0,
+        fine_reason: formData.get('fine_reason') || ''
+      };
+      await apiService.admin.modifyBill(selectedBill.id || selectedBill.bill_id, data);
+      showToast?.('Bill modified successfully!', 'success');
+      setShowModifyForm(false);
+      setSelectedBill(null);
+      if (activeView !== 'overview') {
+        loadBills();
+      }
+    } catch (error) {
+      console.error('Failed to modify bill:', error);
+      showToast?.(error.response?.data?.error || 'Failed to modify bill', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsPaid = async (bill) => {
+    try {
+      setLoading(true);
+      await apiService.admin.modifyBill(bill.id || bill.bill_id, { status: 'paid' });
+      showToast?.('Bill marked as paid successfully!', 'success');
+      loadBills();
+    } catch (error) {
+      console.error('Failed to mark bill as paid:', error);
+      showToast?.(error.response?.data?.error || 'Failed to mark bill as paid', 'error');
     } finally {
       setLoading(false);
     }
@@ -154,34 +269,16 @@ const AdminBills = ({ user, showToast }) => {
     }
   };
 
-  const handleModifyBill = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      await apiService.admin.modifyBill(selectedBill.id, {
-        amount: selectedBill.total_amount,
-        // Add other modifiable fields as needed
-      });
-      showToast?.('Bill modified successfully!', 'success');
-      setShowModifyForm(false);
-      setSelectedBill(null);
-      loadBills();
-    } catch (error) {
-      console.error('Failed to modify bill:', error);
-      showToast?.(error.message || 'Failed to modify bill', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const renderOverview = () => (
     <div className="space-y-6">
-      <div className="text-center">
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h2 className="text-xl font-bold text-gray-900">Bills Management</h2>
         <p className="text-gray-600 mt-1">Generate and manage student bills</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        <div className="grid grid-cols-1 gap-4">
         <button
           onClick={() => setShowGenerateForm(true)}
           className="bg-blue-600 text-white p-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
@@ -207,88 +304,128 @@ const AdminBills = ({ user, showToast }) => {
         </button>
 
         <button
-          onClick={handleAddOverdueFines}
+          onClick={() => setActiveView('pending')}
+          className="bg-yellow-50 text-yellow-700 p-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-yellow-100 transition-colors border border-yellow-200"
+        >
+          <DocumentTextIcon className="w-5 h-5" />
+          Pending Payments
+        </button>
+
+        <button
+          onClick={() => setShowFineForm(true)}
           className="bg-orange-50 text-orange-700 p-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-orange-100 transition-colors border border-orange-200"
         >
           <CurrencyRupeeIcon className="w-5 h-5" />
-          Add Overdue Fines
+          Manage Fines
         </button>
+        </div>
       </div>
     </div>
   );
 
   const renderBillsList = () => (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setActiveView('overview')}
-          className="text-blue-600 hover:text-blue-800 font-medium"
-        >
-          ← Back to Overview
-        </button>
-        <h2 className="text-lg font-semibold capitalize">
-          {activeView} Students ({bills.length})
-        </h2>
+      <div className="bg-white rounded-xl p-6 shadow-sm border">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveView('overview')}
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            ← Back to Overview
+          </button>
+          <h2 className="text-lg font-semibold capitalize">
+            {activeView === 'pending' ? `Pending Payments (${pendingPayments.length})` : `${activeView} Students (${filteredBills.length}/${bills.length})`}
+          </h2>
+        </div>
+        
+        {/* Search Bar for Bills */}
+        {(activeView === 'paid' || activeView === 'unpaid') && (
+          <div className="mb-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder={`Search ${activeView} students...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading ? (
         <LoadingSpinner text={`Loading ${activeView} bills...`} />
-      ) : bills.length === 0 ? (
+      ) : (activeView === 'pending' ? pendingPayments.length === 0 : filteredBills.length === 0) ? (
         <div className="text-center py-8">
           <DocumentTextIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">No {activeView} bills found</p>
+          <p className="text-gray-500">No {activeView === 'pending' ? 'pending payments' : `${activeView} bills`} found</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {bills.map((bill) => (
-            <div key={bill.id} className="bg-white rounded-lg p-4 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 className="font-semibold text-gray-900">{bill.student_name}</h3>
-                  <p className="text-sm text-gray-600">Mess No: {bill.mess_no}</p>
+          {(activeView === 'pending' ? pendingPayments : filteredBills).map((item) => (
+            <div key={item.id || item.bill_id} className="bg-white rounded-xl p-4 shadow-sm border">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-medium text-gray-900">{item.name || item.student_name}</span>
+                    <span className="text-sm text-gray-500">({item.roll_number || item.mess_no})</span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Amount: ₹{item.amount} • Month: {item.month}
+                    {activeView === 'pending' && item.transaction_number && (
+                      <span className="ml-2">• TXN: {item.transaction_number}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">₹{bill.total_amount}</p>
-                  <p className={`text-sm ${
-                    bill.status === 'paid' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {bill.status === 'paid' ? 'Paid' : 'Unpaid'}
-                  </p>
+                <div className="flex items-center gap-2">
+                  {activeView === 'pending' ? (
+                    <>
+                      <button
+                        onClick={() => handleApprovePayment(item.id)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Approve Payment"
+                      >
+                        <CheckCircleIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleRejectPayment(item.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Reject Payment"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {activeView === 'unpaid' && (
+                        <button
+                          onClick={() => handleMarkAsPaid(item)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Mark as Paid"
+                          disabled={loading}
+                        >
+                          <CheckCircleIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedBill(item);
+                          setShowModifyForm(true);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Modify Bill"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
-              </div>
-              
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => {
-                    setSelectedBill(bill);
-                    setShowModifyForm(true);
-                  }}
-                  className="flex-1 bg-blue-100 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center justify-center gap-1"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                  Modify
-                </button>
-                
-                <button
-                  onClick={() => handleDeleteBill(bill.id)}
-                  className="flex-1 bg-red-100 text-red-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center justify-center gap-1"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                  Delete
-                </button>
-                
-                {bill.status === 'unpaid' && (
-                  <button
-                    onClick={() => {
-                      setSelectedBill(bill);
-                      setShowFineForm(true);
-                    }}
-                    className="flex-1 bg-orange-100 text-orange-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-orange-200 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <CurrencyRupeeIcon className="w-4 h-4" />
-                    Fine
-                  </button>
-                )}
               </div>
             </div>
           ))}
@@ -298,10 +435,11 @@ const AdminBills = ({ user, showToast }) => {
   );
 
   return (
-    <div className="p-4">
-      {activeView === 'overview' ? renderOverview() : renderBillsList()}
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        {activeView === 'overview' ? renderOverview() : renderBillsList()}
 
-      {/* Generate Bills Modal */}
+        {/* Generate Bills Modal */}
       {showGenerateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -428,15 +566,96 @@ const AdminBills = ({ user, showToast }) => {
         </div>
       )}
 
-      {/* Add Fine Modal */}
-      {showFineForm && selectedBill && (
+    {/* Fine Management Modal */}
+    {showFineForm && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Add Bulk Fines</h3>
+            <button
+              onClick={() => setShowFineForm(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddFine} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Days Overdue
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={fineForm.days_overdue}
+                onChange={(e) => setFineForm(prev => ({ ...prev, days_overdue: parseInt(e.target.value) }))}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Add fines to bills older than this many days
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fine Amount (₹)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={fineForm.fine_amount}
+                onChange={(e) => setFineForm(prev => ({ ...prev, fine_amount: parseFloat(e.target.value) }))}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fine Reason
+              </label>
+              <input
+                type="text"
+                value={fineForm.fine_reason}
+                onChange={(e) => setFineForm(prev => ({ ...prev, fine_reason: e.target.value }))}
+                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter fine reason"
+                required
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowFineForm(false)}
+                className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Adding...' : 'Add Bulk Fines'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {/* Modify Bill Modal */}
+      {showModifyForm && selectedBill && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Add Fine</h3>
+              <h3 className="text-lg font-semibold">Modify Bill</h3>
               <button
                 onClick={() => {
-                  setShowFineForm(false);
+                  setShowModifyForm(false);
                   setSelectedBill(null);
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -445,24 +664,38 @@ const AdminBills = ({ user, showToast }) => {
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="font-medium">{selectedBill.student_name}</p>
-              <p className="text-sm text-gray-600">Mess No: {selectedBill.mess_no}</p>
-              <p className="text-sm text-gray-600">Current Amount: ₹{selectedBill.total_amount}</p>
-            </div>
+            <form onSubmit={handleModifyBill} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Student: {selectedBill.name || selectedBill.student_name}
+                </label>
+                <p className="text-sm text-gray-500">Roll: {selectedBill.roll_number || selectedBill.mess_no}</p>
+              </div>
 
-            <form onSubmit={handleAddFine} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (₹)
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  defaultValue={selectedBill.amount}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Fine Amount (₹)
                 </label>
                 <input
                   type="number"
+                  name="fine_amount"
                   step="0.01"
-                  value={fineForm.fine_amount}
-                  onChange={(e) => setFineForm(prev => ({ ...prev, fine_amount: parseFloat(e.target.value) }))}
+                  defaultValue={selectedBill.fine_amount || 0}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
                 />
               </div>
 
@@ -472,11 +705,10 @@ const AdminBills = ({ user, showToast }) => {
                 </label>
                 <input
                   type="text"
-                  value={fineForm.fine_reason}
-                  onChange={(e) => setFineForm(prev => ({ ...prev, fine_reason: e.target.value }))}
+                  name="fine_reason"
+                  defaultValue={selectedBill.fine_reason || ''}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Late payment"
-                  required
+                  placeholder="Enter fine reason"
                 />
               </div>
 
@@ -484,7 +716,7 @@ const AdminBills = ({ user, showToast }) => {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowFineForm(false);
+                    setShowModifyForm(false);
                     setSelectedBill(null);
                   }}
                   className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
@@ -494,15 +726,16 @@ const AdminBills = ({ user, showToast }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {loading ? 'Adding...' : 'Add Fine'}
+                  {loading ? 'Updating...' : 'Update Bill'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
