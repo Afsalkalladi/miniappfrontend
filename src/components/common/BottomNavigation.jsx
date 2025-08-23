@@ -25,6 +25,7 @@ const BottomNavigation = ({ activeTab, onTabChange, userType }) => {
         return [
           { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, activeIcon: HomeIconSolid },
           { id: 'bills', label: 'Bills', icon: DocumentTextIcon, activeIcon: DocumentTextIconSolid },
+          { id: 'scanner', label: 'Scanner', icon: QrCodeIcon, activeIcon: QrCodeIconSolid },
           { id: 'reports', label: 'Reports', icon: ChartBarIcon, activeIcon: ChartBarIconSolid },
           { id: 'notifications', label: 'Notifications', icon: BellIcon, activeIcon: BellIconSolid },
           { id: 'profile', label: 'Profile', icon: UserIcon, activeIcon: UserIconSolid },

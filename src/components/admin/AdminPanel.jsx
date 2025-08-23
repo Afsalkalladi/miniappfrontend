@@ -6,9 +6,11 @@ import AdminBills from './AdminBills';
 import AdminReports from './AdminReports';
 import AdminNotifications from './AdminNotifications';
 import AdminProfile from './AdminProfile';
+import StaffQRScanner from '../staff/StaffQRScanner';
 
 const AdminPanel = ({ user, telegramUser }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showScanner, setShowScanner] = useState(false);
   const { showToast, ToastContainer } = useToast();
 
   const renderContent = () => {
@@ -21,6 +23,8 @@ const AdminPanel = ({ user, telegramUser }) => {
         return <AdminReports user={user} showToast={showToast} />;
       case 'notifications':
         return <AdminNotifications user={user} showToast={showToast} />;
+      case 'scanner':
+        return <StaffQRScanner onBack={() => setActiveTab('dashboard')} />;
       case 'profile':
         return <AdminProfile user={user} telegramUser={telegramUser} showToast={showToast} />;
       default:
