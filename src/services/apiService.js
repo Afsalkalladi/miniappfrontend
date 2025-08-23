@@ -400,6 +400,13 @@ export const apiService = {
       }
     }),
 
+    regenerateQR: () => apiRequest(`${API_BASE}/students/regenerate-qr/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    }),
+
     getBills: () => apiRequest(`${API_BASE}/mess/bills/`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`

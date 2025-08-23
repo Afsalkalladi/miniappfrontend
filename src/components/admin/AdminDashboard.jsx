@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   UsersIcon, 
   ScissorsIcon, 
@@ -9,10 +10,10 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
-import { QrScanner } from '@yudiel/react-qr-scanner';
 import { apiService } from '../../services/apiService';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     active_users: 0,
     mess_cuts_tomorrow: 0,
@@ -153,82 +154,16 @@ const AdminDashboard = () => {
               QR Scanner
             </h2>
             <button
-              onClick={() => setScannerActive(!scannerActive)}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                scannerActive 
-                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+              onClick={() => navigate('/admin-scanner')}
+              className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700"
             >
-              {scannerActive ? 'Stop Scanner' : 'Start Scanner'}
+              Open Scanner
             </button>
           </div>
-
-          {/* Scanner Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Meal</label>
-              <select
-                value={selectedMeal}
-                onChange={(e) => setSelectedMeal(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-              </select>
-            </div>
-          </div>
-
-          {/* QR Scanner */}
-          {scannerActive && (
-            <div className="mb-4">
-              <QrScanner
-                onDecode={handleQRScan}
-                onError={(error) => console.error('QR Scanner Error:', error)}
-                containerStyle={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}
-              />
-            </div>
-          )}
-
-          {/* Scan Result */}
-          {scanResult && (
-            <div className={`p-4 rounded-lg ${
-              scanResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-            }`}>
-              <div className="flex items-center">
-                {scanResult.success ? (
-                  <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-                ) : (
-                  <XCircleIcon className="h-5 w-5 text-red-600 mr-2" />
-                )}
-                <p className={`font-medium ${scanResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                  {scanResult.message}
-                </p>
-              </div>
-              {scanResult.studentInfo && (
-                <div className="mt-2 text-sm text-gray-600">
-                  <p>Student: {scanResult.studentInfo.name}</p>
-                  <p>Department: {scanResult.studentInfo.department}</p>
-                  {scanResult.studentInfo.has_pending_dues && (
-                    <p className="text-red-600 font-medium">⚠️ Has pending dues</p>
-                  )}
-                  {scanResult.studentInfo.is_on_mess_cut && (
-                    <p className="text-yellow-600 font-medium">✂️ On mess cut today</p>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          
+          <p className="text-gray-600 text-center py-4">
+            Click "Open Scanner" to access the full QR scanning interface for attendance marking.
+          </p>
         </div>
 
         {/* Today's Attendance Stats */}

@@ -29,22 +29,40 @@ const QRScanner = ({ onBack }) => {
   };
 
   const handleQRScan = async (result) => {
-    if (!result || !result[0]?.rawValue) return;
+    if (!result || loading) return;
+
+    // Handle different QR scanner result formats
+    let qrData;
+    if (typeof result === 'string') {
+      qrData = result;
+    } else if (result[0]?.rawValue) {
+      qrData = result[0].rawValue;
+    } else if (result.text) {
+      qrData = result.text;
+    } else {
+      console.error('Invalid QR result format:', result);
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
       setScanning(false);
 
-      console.log('🎯 QR Scan result:', result[0].rawValue);
+      console.log('🎯 QR Scan result:', qrData);
 
+      // Parse secure QR code format (v2.0 only)
       let messNo;
       try {
-        const parsed = JSON.parse(result[0].rawValue);
-        messNo = parsed.mess_no || parsed.messNo || result[0].rawValue;
-      } catch {
-        const match = result[0].rawValue.match(/\d+/);
-        messNo = match ? match[0] : result[0].rawValue;
+        const parsed = JSON.parse(qrData);
+        if (parsed.version === '2.0' && parsed.mess_no && parsed.uuid && parsed.student_id && parsed.hash) {
+          messNo = parsed.mess_no;
+          console.log('🔒 Secure QR v2.0 detected:', parsed);
+        } else {
+          throw new Error('Invalid or outdated QR format. Please regenerate your QR code.');
+        }
+      } catch (parseError) {
+        throw new Error('Invalid QR format. Only secure QR codes v2.0 are supported. Please regenerate your QR code.');
       }
       
       console.log('🎯 Final mess number to lookup:', messNo);
@@ -62,7 +80,7 @@ const QRScanner = ({ onBack }) => {
       const errorMessage = error.response?.data?.error || error.message || 'Failed to get student information';
       const statusCode = error.response?.status;
       const fullError = statusCode ? `${statusCode}: ${errorMessage}` : errorMessage;
-      setError(`QR Scan Failed: ${fullError}\n\nScanned Data: ${result[0].rawValue}`);
+      setError(`QR Scan Failed: ${fullError}\n\nScanned Data: ${qrData}`);
       setScanning(true);
     } finally {
       setLoading(false);
@@ -307,12 +325,14 @@ const QRScanner = ({ onBack }) => {
     <div className="min-h-screen bg-telegram-bg text-telegram-text p-4 pb-20">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={onBack}
-          className="p-2 bg-telegram-secondary rounded-lg border border-gray-600"
-        >
-          <ArrowLeftIcon className="w-5 h-5 text-telegram-text" />
-        </button>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="p-2 bg-telegram-secondary rounded-lg border border-gray-600 hover:bg-gray-600 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5 text-telegram-text" />
+          </button>
+        )}
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-telegram-text">QR Scanner</h1>
           <p className="text-telegram-hint">Scan student QR code for {getCurrentMeal()}</p>
@@ -438,12 +458,20 @@ const QRScanner = ({ onBack }) => {
         </>
       ) : (
         <div className="text-center">
-          <button
-            onClick={() => setScanning(true)}
-            className="bg-telegram-accent text-white px-6 py-3 rounded-lg font-medium"
-          >
-            Start Scanning
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => setScanning(true)}
+              className="bg-telegram-accent text-white px-6 py-3 rounded-lg font-medium w-full"
+            >
+              Start Scanning
+            </button>
+            <button
+              onClick={() => setShowManualEntry(true)}
+              className="bg-green-500 text-white px-6 py-3 rounded-lg font-medium w-full"
+            >
+              Manual Entry
+            </button>
+          </div>
         </div>
       )}
 

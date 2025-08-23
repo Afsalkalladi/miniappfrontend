@@ -45,31 +45,44 @@ const AdminStudentManagement = ({ onBack }) => {
     }
   };
 
-  const handleApproveStudent = async (studentId) => {
+  const handleApproveStudent = async (studentId, action = 'approve') => {
     try {
       const student = students.find(s => s.id === studentId);
-      if (!confirm(`Approve ${student?.name}?`)) return;
-
-      await apiService.admin.approveStudent(studentId);
-      alert(`✅ ${student?.name} approved successfully!`);
-      loadStudents();
+      
+      await apiService.admin.updateStudentStatus(studentId, action);
+      
+      // Remove student from list if rejected, update if approved
+      if (action === 'reject') {
+        setStudents(prev => prev.filter(s => s.id !== studentId));
+      } else {
+        setStudents(prev => prev.map(s => 
+          s.id === studentId ? { ...s, is_approved: true } : s
+        ));
+      }
+      
+      // Show success message
+      const message = action === 'approve' 
+        ? `Student ${student?.name} approved successfully`
+        : `Student ${student?.name} rejected successfully`;
+      
+      // You can add a toast notification here if available
+      console.log(message);
+      
     } catch (error) {
-      console.error('Failed to approve student:', error);
-      alert(`Failed to approve student: ${error.response?.data?.error || error.message}`);
+      console.error(`Failed to ${action} student:`, error);
+      setError(`Failed to ${action} student`);
     }
   };
 
   const handleRejectStudent = async (studentId) => {
-    try {
-      const student = students.find(s => s.id === studentId);
-      if (!confirm(`Reject ${student?.name}?`)) return;
+    if (confirm('Are you sure you want to reject this student? This action cannot be undone.')) {
+      await handleApproveStudent(studentId, 'reject');
+    }
+  };
 
-      await apiService.admin.rejectStudent(studentId);
-      alert(`❌ ${student?.name} rejected successfully!`);
-      loadStudents();
-    } catch (error) {
-      console.error('Failed to reject student:', error);
-      alert(`Failed to reject student: ${error.response?.data?.error || error.message}`);
+  const handleApproveStudentConfirm = async (studentId) => {
+    if (confirm('Are you sure you want to approve this student?')) {
+      await handleApproveStudent(studentId, 'approve');
     }
   };
 

@@ -17,6 +17,7 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -35,6 +36,32 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
       showToast('Failed to load profile', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegenerateQR = async () => {
+    if (!confirm('Are you sure you want to regenerate your QR code? This will invalidate your current QR code.')) {
+      return;
+    }
+
+    try {
+      setRegeneratingQR(true);
+      
+      const response = await apiService.students.regenerateQR();
+      
+      // Update profile data with new QR
+      setProfileData(prev => ({
+        ...prev,
+        qr_code: response.qr_code
+      }));
+      
+      showToast('QR code regenerated successfully', 'success');
+      
+    } catch (error) {
+      console.error('QR regeneration error:', error);
+      showToast('Failed to regenerate QR code', 'error');
+    } finally {
+      setRegeneratingQR(false);
     }
   };
 
@@ -187,21 +214,42 @@ const StudentProfile = ({ user, telegramUser, showToast }) => {
       )}
 
       {/* QR Code Section */}
-      {student?.qr_code && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">My QR Code</h3>
-          <div className="bg-gray-50 p-4 rounded-lg inline-block mb-4">
-            <img 
-              src={student.qr_code} 
-              alt="Student QR Code"
-              className="w-32 h-32"
-            />
+      <div className="bg-white rounded-xl p-6 shadow-sm border text-center">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">My QR Code</h3>
+        {student?.qr_code ? (
+          <>
+            <div className="bg-gray-50 p-4 rounded-lg inline-block mb-4">
+              <img 
+                src={student.qr_code} 
+                alt="Student QR Code"
+                className="w-32 h-32"
+              />
+            </div>
+            <p className="text-gray-600 text-sm mb-4">
+              Show this QR code for mess entry
+            </p>
+            <button
+              onClick={handleRegenerateQR}
+              disabled={regeneratingQR}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {regeneratingQR ? 'Regenerating...' : 'Regenerate QR Code'}
+            </button>
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <QrCodeIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">No QR code generated yet</p>
+            <button
+              onClick={handleRegenerateQR}
+              disabled={regeneratingQR}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {regeneratingQR ? 'Generating...' : 'Generate QR Code'}
+            </button>
           </div>
-          <p className="text-gray-600 text-sm mb-4">
-            Show this QR code for mess entry
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* System Info */}
       <div className="bg-gray-50 rounded-xl p-6 border">
