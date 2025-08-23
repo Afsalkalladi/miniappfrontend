@@ -16,7 +16,10 @@ const StaffQRScanner = ({ onBack }) => {
   const [error, setError] = useState(null);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
   const [manualMessNo, setManualMessNo] = useState('');
-  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMeal, setSelectedMeal] = useState('breakfast');
+  const [showDateMealSelector, setShowDateMealSelector] = useState(false);
 
   const getCurrentMeal = () => {
     const now = new Date();
@@ -59,7 +62,8 @@ const StaffQRScanner = ({ onBack }) => {
       const response = await apiService.staff.getStudentInfo(messNo);
       console.log('📋 Student info response:', response);
       setStudentInfo(response);
-      setShowStudentModal(true);
+      setShowManualEntry(false);
+      setShowDateMealSelector(false);
 
     } catch (error) {
       console.error('❌ Failed to get student info:', error);
@@ -74,14 +78,16 @@ const StaffQRScanner = ({ onBack }) => {
   };
 
   const handleMarkAttendance = async () => {
+    if (!studentInfo) return;
+
     try {
       setLoading(true);
       setError(null);
       
       const attendanceData = {
         mess_no: studentInfo.mess_no,
-        meal_type: getCurrentMeal(),
-        date: getCurrentDate()
+        meal_type: selectedMeal,
+        date: selectedDate
       };
       
       console.log('🔄 Marking attendance:', attendanceData);
@@ -110,7 +116,8 @@ const StaffQRScanner = ({ onBack }) => {
     setAttendanceMarked(false);
     setError(null);
     setManualMessNo('');
-    setShowStudentModal(false);
+    setShowManualEntry(false);
+    setShowDateMealSelector(false);
     setScanning(true);
   };
 
@@ -130,7 +137,8 @@ const StaffQRScanner = ({ onBack }) => {
       const response = await apiService.staff.getStudentInfo(manualMessNo.trim());
       console.log('📋 Student info response:', response);
       setStudentInfo(response);
-      setShowStudentModal(true);
+      setShowManualEntry(false);
+      setShowDateMealSelector(false);
 
     } catch (error) {
       console.error('❌ Failed to get student info:', error);
@@ -174,7 +182,7 @@ const StaffQRScanner = ({ onBack }) => {
           <div className="flex items-center justify-between p-4 border-b border-gray-600">
             <h2 className="text-lg font-bold text-telegram-text">Student Info - {currentMeal} {getMealIcon(currentMeal)}</h2>
             <button
-              onClick={() => setShowStudentModal(false)}
+              onClick={() => setShowManualEntry(false)}
               className="p-1 text-telegram-hint hover:text-telegram-text"
             >
               ✕
@@ -185,76 +193,78 @@ const StaffQRScanner = ({ onBack }) => {
           <div className="p-4 space-y-4">
             {/* Student Profile */}
             <div className="flex items-center gap-4 p-4 bg-telegram-bg rounded-lg">
-              <div className="w-16 h-16 bg-telegram-accent rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden">
                 {studentInfo.profile_image ? (
                   <img 
                     src={studentInfo.profile_image} 
-                    alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover"
+                    alt={studentInfo.name}
+                    className="w-full h-full object-cover rounded-full"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : null}
-                <div className={`w-16 h-16 bg-telegram-accent rounded-full flex items-center justify-center ${studentInfo.profile_image ? 'hidden' : 'flex'}`}>
-                  <span className="text-white font-bold text-xl">
-                    {studentInfo.name?.charAt(0)?.toUpperCase() || 'S'}
-                  </span>
+                <div className={`w-full h-full flex items-center justify-center ${studentInfo.profile_image ? 'hidden' : 'flex'}`}>
+                  {studentInfo.name.charAt(0).toUpperCase()}
                 </div>
               </div>
-              
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-telegram-text">{studentInfo.name || 'Unknown Student'}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="px-2 py-1 bg-telegram-accent/20 text-telegram-accent rounded text-sm font-mono">
-                    {studentInfo.mess_no || 'N/A'}
-                  </span>
-                  {studentInfo.is_approved ? (
-                    <span className="px-2 py-1 bg-green-400/20 text-green-400 rounded text-sm">
-                      ✅ Approved
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-red-400/20 text-red-400 rounded text-sm">
-                      ❌ Not Approved
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Student Details */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <BuildingOfficeIcon className="w-4 h-4 text-telegram-hint" />
-                <span className="text-telegram-hint">Dept:</span>
-                <span className="text-telegram-text">{studentInfo.department || 'N/A'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <HomeIcon className="w-4 h-4 text-telegram-hint" />
-                <span className="text-telegram-hint">Room:</span>
-                <span className="text-telegram-text">{studentInfo.room_no || 'N/A'}</span>
+                <h3 className="text-xl font-bold text-telegram-text">{studentInfo.name}</h3>
+                <p className="text-telegram-hint">Mess No: {studentInfo.mess_no}</p>
+                <p className="text-telegram-hint">{studentInfo.department} - Year {studentInfo.year_of_study}</p>
+                <p className="text-telegram-hint">Room: {studentInfo.room_no}</p>
               </div>
             </div>
 
             {/* Mess Cut Status */}
-            {isOnMessCut && (
+            {studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0 && (
               <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
-                <h4 className="text-red-400 font-medium mb-2">⚠️ Mess Cut Active</h4>
-                <div className="text-red-300 text-sm space-y-1">
-                  {studentInfo.mess_cuts?.map((cut, index) => (
-                    <div key={index}>
-                      📅 {formatDate(cut.from_date)} to {formatDate(cut.to_date)}
-                    </div>
-                  ))}
-                </div>
+                <h4 className="text-red-400 font-medium flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-5 h-5" />
+                  On Mess Cut
+                </h4>
+                <p className="text-red-300 text-sm mt-1">
+                  Active from {new Date(studentInfo.mess_cuts[0].from_date).toLocaleDateString()} to {new Date(studentInfo.mess_cuts[0].to_date).toLocaleDateString()}
+                </p>
+                <p className="text-red-300 text-sm">
+                  Attendance cannot be marked during mess cut period.
+                </p>
               </div>
             )}
 
             {/* Bills Status */}
             {studentInfo.unpaid_bills_count > 0 && (
-              <div className="bg-orange-500/20 border border-orange-500 rounded-lg p-3">
-                <h4 className="text-orange-400 font-medium">💰 Unpaid Bills: {studentInfo.unpaid_bills_count}</h4>
+              <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3">
+                <h4 className="text-yellow-400 font-medium flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-5 h-5" />
+                  Outstanding Bills
+                </h4>
+                <p className="text-yellow-300 text-sm mt-1">
+                  {studentInfo.unpaid_bills_count} unpaid bill{studentInfo.unpaid_bills_count > 1 ? 's' : ''} pending
+                </p>
+                {studentInfo.bills && studentInfo.bills.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {studentInfo.bills.filter(bill => bill.status === 'unpaid').slice(0, 2).map((bill, index) => (
+                      <div key={index} className="text-yellow-300 text-xs">
+                        {new Date(bill.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}: ₹{bill.amount}
+                        {bill.fine_amount > 0 && ` (+ ₹${bill.fine_amount} fine)`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Payment Status - Good Standing */}
+            {studentInfo.unpaid_bills_count === 0 && (
+              <div className="bg-green-500/20 border border-green-500 rounded-lg p-3">
+                <h4 className="text-green-400 font-medium flex items-center gap-2">
+                  ✅ Payment Status: Good
+                </h4>
+                <p className="text-green-300 text-sm mt-1">
+                  All bills are paid up to date
+                </p>
               </div>
             )}
 
@@ -272,7 +282,7 @@ const StaffQRScanner = ({ onBack }) => {
                 <div className="flex-1 text-center">
                   <div className="bg-green-500/20 border border-green-500 rounded-lg p-3 mb-3">
                     <h4 className="text-green-400 font-medium">✅ Attendance Marked Successfully!</h4>
-                    <p className="text-green-300 text-sm">For {currentMeal} on {formatDate(getCurrentDate())}</p>
+                    <p className="text-green-300 text-sm">For {selectedMeal} on {formatDate(selectedDate)}</p>
                   </div>
                   <button
                     onClick={handleScanAnother}
@@ -284,21 +294,23 @@ const StaffQRScanner = ({ onBack }) => {
               ) : (
                 <>
                   <button
-                    onClick={() => setShowStudentModal(false)}
+                    onClick={() => setShowManualEntry(false)}
                     className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-medium"
                   >
                     Back to Scanner
                   </button>
                   <button
                     onClick={handleMarkAttendance}
-                    disabled={loading || isOnMessCut}
+                    disabled={loading || (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)}
                     className={`flex-1 py-3 rounded-lg font-medium ${
-                      isOnMessCut 
+                      (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)
                         ? 'bg-red-600 text-white cursor-not-allowed' 
-                        : 'bg-green-600 text-white hover:bg-green-700'
+                        : loading 
+                        ? 'bg-gray-600 text-white' 
+                        : 'bg-telegram-accent text-white hover:bg-blue-600'
                     }`}
                   >
-                    {loading ? 'Marking...' : isOnMessCut ? 'Cannot Mark (Mess Cut)' : 'Mark Attendance'}
+                    {loading ? 'Marking...' : (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0) ? 'On Mess Cut' : `Mark ${selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1)} Attendance`}
                   </button>
                 </>
               )}
@@ -354,7 +366,7 @@ const StaffQRScanner = ({ onBack }) => {
       </div>
 
       {/* Show Modal if student info exists */}
-      {showStudentModal && <StudentModal />}
+      {showManualEntry && <StudentModal />}
 
       {/* Main Scanner Interface */}
       {scanning ? (
@@ -376,46 +388,90 @@ const StaffQRScanner = ({ onBack }) => {
             </div>
             
             {/* Stop Scanning Button */}
-            <div className="mt-4 text-center">
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowManualEntry(!showManualEntry)}
+                  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  {showManualEntry ? 'Hide Manual Entry' : 'Manual Entry'}
+                </button>
+                
+                <button
+                  onClick={() => setShowDateMealSelector(!showDateMealSelector)}
+                  className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Date & Meal
+                </button>
+              </div>
+              
               <button
                 onClick={() => setScanning(false)}
-                className="bg-red-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
               >
                 Stop Scanning
               </button>
             </div>
-          </div>
 
-          {/* Manual Entry Option */}
-          <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-4 mb-4">
-            <h4 className="text-yellow-400 font-medium mb-2">✍️ Manual Entry</h4>
-            <p className="text-yellow-300 text-sm mb-3">Can't scan QR code? Enter mess number manually:</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={manualMessNo}
-                onChange={(e) => setManualMessNo(e.target.value)}
-                placeholder="Enter mess number"
-                className="flex-1 px-3 py-2 bg-telegram-bg border border-gray-600 rounded-lg text-telegram-text placeholder-telegram-hint"
-                onKeyPress={(e) => e.key === 'Enter' && handleManualEntry()}
-              />
-              <button
-                onClick={handleManualEntry}
-                disabled={loading || !manualMessNo.trim()}
-                className="bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
-              >
-                {loading ? '...' : 'Search'}
-              </button>
-            </div>
+            {showManualEntry && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <h3 className="text-lg font-semibold mb-3">Manual Entry</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualMessNo}
+                    onChange={(e) => setManualMessNo(e.target.value)}
+                    placeholder="Enter mess number"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleManualEntry}
+                    disabled={!manualMessNo.trim()}
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-colors"
+                  >
+                    Scan
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showDateMealSelector && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <h3 className="text-lg font-semibold mb-3">Date & Meal Selection</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal</label>
+                    <select
+                      value={selectedMeal}
+                      onChange={(e) => setSelectedMeal(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="breakfast">Breakfast</option>
+                      <option value="lunch">Lunch</option>
+                      <option value="dinner">Dinner</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-500/20 border border-blue-500 rounded-lg p-4">
-            <h4 className="text-blue-400 font-medium mb-2">📱 Scanning Instructions</h4>
-            <ul className="text-blue-300 text-sm space-y-1">
-              <li>• Point camera at student's QR code</li>
-              <li>• Ensure good lighting for clear scan</li>
-              <li>• Hold steady until scan completes</li>
+          <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+            <h3 className="text-lg font-semibold text-telegram-text mb-3">Instructions</h3>
+            <ul className="text-telegram-hint space-y-1">
+              <li>• Point camera at QR code</li>
+              <li>• Use manual entry for backup</li>
+              <li>• Select date and meal as needed</li>
               <li>• Student information will appear automatically</li>
             </ul>
           </div>
