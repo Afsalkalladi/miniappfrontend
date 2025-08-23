@@ -68,10 +68,22 @@ const QRScanner = ({ onBack }) => {
       console.log('🎯 Final mess number to lookup:', messNo);
 
       const response = await apiService.staff.getStudentInfo(messNo);
+      
+      // Pass QR data to backend for validation
+      const attendanceData = {
+        mess_no: messNo,
+        meal_type: selectedMeal,
+        date: selectedDate,
+        qr_data: qrData // Include QR data for security validation
+      };
       console.log('📋 Student info response:', response);
       console.log('📋 Mess cuts data:', response.mess_cuts);
       console.log('📋 Bills data:', response.bills);
-      setStudentInfo(response);
+      // Store QR data with student info for later validation
+      setStudentInfo({
+        ...response,
+        scanned_qr_data: qrData
+      });
       setShowManualEntry(false);
       setShowDateMealSelector(false);
 
@@ -97,9 +109,10 @@ const QRScanner = ({ onBack }) => {
       const attendanceData = {
         mess_no: studentInfo.mess_no,
         meal_type: selectedMeal,
-        date: selectedDate
+        date: selectedDate,
+        is_manual_entry: false,
+        qr_data: studentInfo.scanned_qr_data || null // Include QR data for validation if available
       };
-      
       console.log('🔄 Marking attendance:', attendanceData);
       
       const response = await apiService.staff.markAttendance(attendanceData);
@@ -149,7 +162,11 @@ const QRScanner = ({ onBack }) => {
       console.log('📋 Student info response:', response);
       console.log('📋 Mess cuts data:', response.mess_cuts);
       console.log('📋 Bills data:', response.bills);
-      setStudentInfo(response);
+      // Manual entry doesn't have QR data
+      setStudentInfo({
+        ...response,
+        scanned_qr_data: null
+      });
       setShowManualEntry(false);
       setShowDateMealSelector(false);
 

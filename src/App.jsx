@@ -14,7 +14,6 @@ import StudentPanel from './components/student/StudentPanel';
 // Common Components
 import LoadingScreen from './components/common/LoadingScreen';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import AdminScannerPage from './components/admin/AdminScannerPage';
 
 function App() {
   return (
@@ -32,14 +31,6 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin={true}>
                     <AdminPanel />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin-scanner" 
-                element={
-                  <ProtectedRoute requireAdmin={true}>
-                    <AdminScannerPage />
                   </ProtectedRoute>
                 } 
               />

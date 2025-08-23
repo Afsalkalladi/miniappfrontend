@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   UsersIcon, 
   ScissorsIcon, 
@@ -10,10 +9,10 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
+import { QrScanner } from '@yudiel/react-qr-scanner';
 import { apiService } from '../../services/apiService';
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
   const [stats, setStats] = useState({
     active_users: 0,
     mess_cuts_tomorrow: 0,
@@ -154,7 +153,7 @@ const AdminDashboard = () => {
               QR Scanner
             </h2>
             <button
-              onClick={() => navigate('/admin-scanner')}
+              onClick={() => window.location.href = '/admin-scanner'}
               className="px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700"
             >
               Open Scanner
