@@ -6,7 +6,7 @@ import AdminBills from './AdminBills';
 import AdminReports from './AdminReports';
 import AdminNotifications from './AdminNotifications';
 import AdminProfile from './AdminProfile';
-import StaffQRScanner from '../staff/StaffQRScanner';
+import AdminQRScanner from './AdminQRScanner';
 
 const AdminPanel = ({ user, telegramUser }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -24,7 +24,7 @@ const AdminPanel = ({ user, telegramUser }) => {
       case 'notifications':
         return <AdminNotifications user={user} showToast={showToast} />;
       case 'scanner':
-        return <StaffQRScanner onBack={() => setActiveTab('dashboard')} />;
+        return <AdminQRScanner onBack={() => setActiveTab('dashboard')} />;
       case 'profile':
         return <AdminProfile user={user} telegramUser={telegramUser} showToast={showToast} />;
       default:

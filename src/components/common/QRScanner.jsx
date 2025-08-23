@@ -1,191 +1,481 @@
 import React, { useState } from 'react';
 import { QrScanner } from '@yudiel/react-qr-scanner';
+import {
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 import { apiService } from '../../services/apiService';
-import { CheckCircleIcon, XCircleIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 
-const Scanner = () => {
-  const [scanning, setScanning] = useState(false);
-  const [result, setResult] = useState(null);
-  const [mealType, setMealType] = useState('lunch');
+const QRScanner = ({ onBack }) => {
+  const [scanning, setScanning] = useState(true);
+  const [studentInfo, setStudentInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [attendanceMarked, setAttendanceMarked] = useState(false);
+  const [manualMessNo, setManualMessNo] = useState('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMeal, setSelectedMeal] = useState('breakfast');
+  const [showDateMealSelector, setShowDateMealSelector] = useState(false);
 
-  const handleScan = async (result) => {
+  const getCurrentMeal = () => {
+    const now = new Date();
+    const kolkataTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const hour = kolkataTime.getHours();
+    
+    if (hour < 10) return 'breakfast';
+    if (hour < 15) return 'lunch';
+    return 'dinner';
+  };
+
+  const handleQRScan = async (result) => {
     if (!result || !result[0]?.rawValue) return;
 
     try {
+      setLoading(true);
+      setError(null);
       setScanning(false);
-      
-      // Parse QR code data
-      let qrData;
+
+      console.log('🎯 QR Scan result:', result[0].rawValue);
+
+      let messNo;
       try {
-        qrData = JSON.parse(result[0].rawValue);
-      } catch (parseError) {
-        // If not JSON, assume it's just the mess number
-        qrData = { mess_no: result[0].rawValue };
+        const parsed = JSON.parse(result[0].rawValue);
+        messNo = parsed.mess_no || parsed.messNo || result[0].rawValue;
+      } catch {
+        const match = result[0].rawValue.match(/\d+/);
+        messNo = match ? match[0] : result[0].rawValue;
       }
       
-      const response = await apiService.scanner.scanQR({
-        mess_no: qrData.mess_no,
-        meal_type: mealType,
-        date: new Date().toISOString().split('T')[0],
-      });
+      console.log('🎯 Final mess number to lookup:', messNo);
 
-      setResult({
-        success: true,
-        student: response.data.student,
-        attendance: response.data.attendance,
-        message: response.data.message || 'Attendance marked successfully!'
-      });
+      const response = await apiService.staff.getStudentInfo(messNo);
+      console.log('📋 Student info response:', response);
+      console.log('📋 Mess cuts data:', response.mess_cuts);
+      console.log('📋 Bills data:', response.bills);
+      setStudentInfo(response);
+      setShowManualEntry(false);
+      setShowDateMealSelector(false);
 
-      // Haptic feedback if available
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      }
-      
     } catch (error) {
-      setResult({
-        success: false,
-        message: error.response?.data?.error || 'Failed to mark attendance'
-      });
-      
-      // Haptic feedback if available
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-      }
+      console.error('❌ Failed to get student info:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to get student information';
+      const statusCode = error.response?.status;
+      const fullError = statusCode ? `${statusCode}: ${errorMessage}` : errorMessage;
+      setError(`QR Scan Failed: ${fullError}\n\nScanned Data: ${result[0].rawValue}`);
+      setScanning(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleError = (error) => {
-    console.error('QR Scanner error:', error);
-    setResult({
-      success: false,
-      message: 'Camera access denied or not available'
+  const handleMarkAttendance = async () => {
+    if (!studentInfo) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const attendanceData = {
+        mess_no: studentInfo.mess_no,
+        meal_type: selectedMeal,
+        date: selectedDate
+      };
+      
+      console.log('🔄 Marking attendance:', attendanceData);
+      
+      const response = await apiService.staff.markAttendance(attendanceData);
+      console.log('✅ Attendance marked:', response);
+      
+      setAttendanceMarked(true);
+      
+      if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to mark attendance:', error);
+      setError(error.response?.data?.error || error.message || 'Failed to mark attendance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScanAnother = () => {
+    setStudentInfo(null);
+    setAttendanceMarked(false);
+    setError(null);
+    setManualMessNo('');
+    setShowManualEntry(false);
+    setShowDateMealSelector(false);
+    setScanning(true);
+  };
+
+  const handleManualEntry = async () => {
+    if (!manualMessNo.trim()) {
+      setError('Please enter a mess number');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setScanning(false);
+
+      console.log('🔍 Manual entry for mess number:', manualMessNo);
+
+      const response = await apiService.staff.getStudentInfo(manualMessNo.trim());
+      console.log('📋 Student info response:', response);
+      console.log('📋 Mess cuts data:', response.mess_cuts);
+      console.log('📋 Bills data:', response.bills);
+      setStudentInfo(response);
+      setShowManualEntry(false);
+      setShowDateMealSelector(false);
+
+    } catch (error) {
+      console.error('❌ Failed to get student info:', error);
+      setError(`Student Lookup Failed: ${error.response?.data?.error || error.message}\n\nMess Number: ${manualMessNo}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMealIcon = (mealType) => {
+    switch (mealType) {
+      case 'breakfast': return '🌅';
+      case 'lunch': return '🌞';
+      case 'dinner': return '🌙';
+      default: return '🍽️';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
-  const startScanning = () => {
-    setScanning(true);
-    setResult(null);
-  };
+  const StudentModal = () => {
+    if (!studentInfo) return null;
 
-  const stopScanning = () => {
-    setScanning(false);
+    const currentMeal = selectedMeal || getCurrentMeal();
+    const today = new Date().toISOString().split('T')[0];
+
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="bg-telegram-secondary rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-600">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-600">
+            <h2 className="text-lg font-bold text-telegram-text">Student Info - {currentMeal} {getMealIcon(currentMeal)}</h2>
+            <button
+              onClick={() => setStudentInfo(null)}
+              className="p-1 text-telegram-hint hover:text-telegram-text"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Modal Content */}
+          <div className="p-4 space-y-4">
+            {/* Student Profile */}
+            <div className="flex items-center gap-4 p-4 bg-telegram-bg rounded-lg">
+              <div className="w-16 h-16 bg-gray-600 rounded-full flex items-center justify-center text-white font-bold text-xl overflow-hidden">
+                {studentInfo.profile_image ? (
+                  <img 
+                    src={studentInfo.profile_image} 
+                    alt={studentInfo.name}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full flex items-center justify-center ${studentInfo.profile_image ? 'hidden' : 'flex'}`}>
+                  {studentInfo.name.charAt(0).toUpperCase()}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-telegram-text">{studentInfo.name}</h3>
+                <p className="text-telegram-hint">Mess No: {studentInfo.mess_no}</p>
+                <p className="text-telegram-hint">{studentInfo.department} - Year {studentInfo.year_of_study}</p>
+                <p className="text-telegram-hint">Room: {studentInfo.room_no}</p>
+              </div>
+            </div>
+
+            {/* Mess Cut Status */}
+            {studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0 && (
+              <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
+                <h4 className="text-red-400 font-medium flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-5 h-5" />
+                  On Mess Cut
+                </h4>
+                <p className="text-red-300 text-sm mt-1">
+                  Active from {new Date(studentInfo.mess_cuts[0].from_date).toLocaleDateString()} to {new Date(studentInfo.mess_cuts[0].to_date).toLocaleDateString()}
+                </p>
+                <p className="text-red-300 text-sm">
+                  Attendance cannot be marked during mess cut period.
+                </p>
+              </div>
+            )}
+
+            {/* Bills Status */}
+            {studentInfo.unpaid_bills_count > 0 && (
+              <div className="bg-yellow-500/20 border border-yellow-500 rounded-lg p-3">
+                <h4 className="text-yellow-400 font-medium flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-5 h-5" />
+                  Outstanding Bills
+                </h4>
+                <p className="text-yellow-300 text-sm mt-1">
+                  {studentInfo.unpaid_bills_count} unpaid bill{studentInfo.unpaid_bills_count > 1 ? 's' : ''} pending
+                </p>
+                {studentInfo.bills && studentInfo.bills.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {studentInfo.bills.filter(bill => bill.status === 'unpaid').slice(0, 2).map((bill, index) => (
+                      <div key={index} className="text-yellow-300 text-xs">
+                        {new Date(bill.month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}: ₹{bill.amount}
+                        {bill.fine_amount > 0 && ` (+ ₹${bill.fine_amount} fine)`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Payment Status - Good Standing */}
+            {studentInfo.unpaid_bills_count === 0 && (
+              <div className="bg-green-500/20 border border-green-500 rounded-lg p-3">
+                <h4 className="text-green-400 font-medium flex items-center gap-2">
+                  ✅ Payment Status: Good
+                </h4>
+                <p className="text-green-300 text-sm mt-1">
+                  All bills are paid up to date
+                </p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 rounded-lg p-3">
+                <h4 className="text-red-400 font-medium mb-2">❌ Error</h4>
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              {attendanceMarked ? (
+                <div className="flex-1 text-center">
+                  <div className="bg-green-500/20 border border-green-500 rounded-lg p-3 mb-3">
+                    <h4 className="text-green-400 font-medium">✅ Attendance Marked Successfully!</h4>
+                    <p className="text-green-300 text-sm">For {selectedMeal} on {formatDate(selectedDate)}</p>
+                  </div>
+                  <button
+                    onClick={handleScanAnother}
+                    className="w-full bg-telegram-accent text-white py-3 rounded-lg font-medium"
+                  >
+                    Scan Another Student
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setStudentInfo(null)}
+                    className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-medium"
+                  >
+                    Back to Scanner
+                  </button>
+                  <button
+                    onClick={handleMarkAttendance}
+                    disabled={loading || (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)}
+                    className={`flex-1 py-3 rounded-lg font-medium ${
+                      (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0)
+                        ? 'bg-red-600 text-white cursor-not-allowed' 
+                        : loading 
+                        ? 'bg-gray-600 text-white' 
+                        : 'bg-telegram-accent text-white hover:bg-blue-600'
+                    }`}
+                  >
+                    {loading ? 'Marking...' : (studentInfo.mess_cuts && studentInfo.mess_cuts.length > 0) ? 'On Mess Cut' : `Mark ${selectedMeal.charAt(0).toUpperCase() + selectedMeal.slice(1)} Attendance`}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="p-4 pb-20">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-telegram-text mb-2">
-          QR Scanner
-        </h1>
-        <p className="text-telegram-hint">
-          Scan student QR codes to mark attendance
-        </p>
-      </div>
-
-      {/* Meal Type Selection */}
-      <div className="mb-6">
-        <label className="block text-telegram-text mb-2">Select Meal:</label>
-        <select
-          value={mealType}
-          onChange={(e) => setMealType(e.target.value)}
-          className="input"
-          disabled={scanning}
-        >
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-        </select>
-      </div>
-
-      {/* Scanner */}
-      {scanning ? (
-        <div className="relative mb-6">
-          <div className="rounded-lg overflow-hidden">
-            <QrScanner
-              onDecode={handleScan}
-              onError={handleError}
-              constraints={{
-                facingMode: 'environment'
-              }}
-              containerStyle={{
-                width: '100%',
-                height: '300px'
-              }}
-            />
-          </div>
-          <button
-            onClick={stopScanning}
-            className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg font-semibold"
-          >
-            Stop
-          </button>
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="flex items-center justify-center h-full">
-              <div className="w-48 h-48 border-2 border-telegram-accent rounded-lg"></div>
-            </div>
-          </div>
-        </div>
-      ) : (
+    <div className="min-h-screen bg-telegram-bg text-telegram-text p-4 pb-20">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
         <button
-          onClick={startScanning}
-          className="w-full btn-primary mb-6 flex items-center justify-center gap-2"
+          onClick={onBack}
+          className="p-2 hover:bg-telegram-secondary rounded-lg transition-colors"
         >
-          <QrCodeIcon className="w-6 h-6" />
-          Start Scanning
+          <ArrowLeftIcon className="w-5 h-5 text-telegram-text" />
         </button>
-      )}
+        <div>
+          <h1 className="text-2xl font-bold text-telegram-text">QR Scanner</h1>
+          <p className="text-telegram-hint">Scan student QR code for {getCurrentMeal()}</p>
+        </div>
+      </div>
 
-      {/* Result */}
-      {result && (
-        <div className={`p-4 rounded-lg border ${
-          result.success 
-            ? 'bg-green-500/20 border-green-500' 
-            : 'bg-red-500/20 border-red-500'
-        }`}>
-          <div className="flex items-center gap-3 mb-2">
-            {result.success ? (
-              <CheckCircleIcon className="w-6 h-6 text-green-400" />
-            ) : (
-              <XCircleIcon className="w-6 h-6 text-red-400" />
-            )}
-            <p className={`font-semibold ${result.success ? 'text-green-400' : 'text-red-400'}`}>
-              {result.message}
-            </p>
-          </div>
-          
-          {result.student && (
-            <div className="mt-3 text-telegram-text">
-              <p><strong>Student:</strong> {result.student.name}</p>
-              <p><strong>Mess No:</strong> {result.student.mess_no}</p>
-              <p><strong>Department:</strong> {result.student.department}</p>
-              <p><strong>Meal:</strong> {mealType.charAt(0).toUpperCase() + mealType.slice(1)}</p>
+      {/* Show Modal if student info exists */}
+      {studentInfo && <StudentModal />}
+
+      {/* Main Scanner Interface */}
+      {scanning ? (
+        <>
+          {/* QR Scanner */}
+          <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600 mb-6">
+            <div className="aspect-square max-w-sm mx-auto">
+              <QrScanner
+                onDecode={handleQRScan}
+                onError={(error) => console.error('QR Scanner error:', error)}
+                constraints={{
+                  facingMode: 'environment'
+                }}
+                containerStyle={{
+                  borderRadius: '12px',
+                  overflow: 'hidden'
+                }}
+              />
             </div>
-          )}
-          
+            
+            {/* Controls */}
+            <div className="flex flex-col gap-4 mt-6">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowManualEntry(!showManualEntry)}
+                  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  {showManualEntry ? 'Hide Manual Entry' : 'Manual Entry'}
+                </button>
+                
+                <button
+                  onClick={() => setShowDateMealSelector(!showDateMealSelector)}
+                  className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Date & Meal
+                </button>
+              </div>
+              
+              <button
+                onClick={() => setScanning(false)}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Stop Scanning
+              </button>
+            </div>
+
+            {showManualEntry && (
+              <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Manual Entry</h3>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualMessNo}
+                    onChange={(e) => setManualMessNo(e.target.value)}
+                    placeholder="Enter mess number"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleManualEntry}
+                    disabled={!manualMessNo.trim()}
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-400 transition-colors"
+                  >
+                    Scan
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {showDateMealSelector && (
+              <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Date & Meal Selection</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Meal</label>
+                    <select
+                      value={selectedMeal}
+                      onChange={(e) => setSelectedMeal(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="breakfast">Breakfast</option>
+                      <option value="lunch">Lunch</option>
+                      <option value="dinner">Dinner</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-telegram-secondary rounded-lg p-4 border border-gray-600">
+            <h3 className="text-lg font-semibold text-telegram-text mb-3">Instructions</h3>
+            <ul className="text-telegram-hint space-y-1">
+              <li>• Point camera at QR code</li>
+              <li>• Use manual entry for backup</li>
+              <li>• Select date and meal as needed</li>
+              <li>• Student information will appear automatically</li>
+            </ul>
+          </div>
+        </>
+      ) : (
+        <div className="text-center">
           <button
-            onClick={() => setResult(null)}
-            className="mt-4 w-full btn-secondary"
+            onClick={() => setScanning(true)}
+            className="bg-telegram-accent text-white px-6 py-3 rounded-lg font-medium"
           >
-            Scan Another
+            Start Scanning
           </button>
         </div>
       )}
 
-      {/* Instructions */}
-      {!scanning && !result && (
-        <div className="card mt-6">
-          <h3 className="text-lg font-semibold text-telegram-text mb-3">Instructions</h3>
-          <ul className="space-y-2 text-telegram-hint text-sm">
-            <li>• Select the appropriate meal type</li>
-            <li>• Tap "Start Scanning" to activate camera</li>
-            <li>• Point camera at student's QR code</li>
-            <li>• Wait for automatic detection</li>
-            <li>• Attendance will be marked instantly</li>
-          </ul>
+      {/* Error Display */}
+      {error && !studentInfo && (
+        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mt-4">
+          <h4 className="text-red-400 font-medium mb-2">❌ Error</h4>
+          <p className="text-red-300 text-sm whitespace-pre-line">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setScanning(true);
+            }}
+            className="mt-3 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-telegram-secondary rounded-lg p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-telegram-accent mx-auto mb-4"></div>
+            <p className="text-telegram-text">Loading...</p>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default Scanner;
+export default QRScanner;

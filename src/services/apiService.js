@@ -353,7 +353,7 @@ export const apiService = {
       }
     }),
 
-    markAttendance: (attendanceData) => apiRequest(`${API_BASE}/mess/attendance/mark/`, {
+    markAttendance: (attendanceData) => apiRequest(`${API_BASE}/mess/scanner/mark-attendance/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('access_token')}`

@@ -1,8 +1,8 @@
 import React from 'react';
 import QRScanner from '../common/QRScanner';
 
-const StaffQRScanner = ({ onBack }) => {
+const AdminQRScanner = ({ onBack }) => {
   return <QRScanner onBack={onBack} />;
 };
 
-export default StaffQRScanner;
+export default AdminQRScanner;
